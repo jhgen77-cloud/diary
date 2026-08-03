@@ -1,8 +1,8 @@
 import Modal from "@/components/Modal";
 
-export default function DiaryWriteModal() {
+export default function DiaryCalendarModal() {
   return (
-    <Modal title="시간을 붙잡다">
+    <Modal title="달력">
       <p className="text-lg text-black dark:text-zinc-50">
         아직 준비 중입니다.
       </p>
