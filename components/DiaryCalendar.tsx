@@ -9,20 +9,24 @@ import {
 
 interface DiaryCalendarProps {
   entries: DiaryEntry[];
+  year: number;
+  month: number;
+  selectedDay?: number | null;
+  onPrevMonth: () => void;
+  onNextMonth: () => void;
 }
 
 interface CalendarCell {
   day: number;
-  isToday: boolean;
   entry?: DiaryEntry;
 }
 
 const WEEKDAY_HEADERS = ["일", "월", "화", "수", "목", "금", "토"];
 
-function buildCalendarCells(entries: DiaryEntry[]) {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
+const navButtonClass =
+  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-black/60 transition-transform hover:bg-black/[.06] active:scale-90 active:bg-black/[.12] dark:text-zinc-300 dark:hover:bg-white/[.08] dark:active:bg-white/[.14]";
+
+function buildCalendarCells(entries: DiaryEntry[], year: number, month: number) {
   const firstWeekday = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
 
@@ -39,25 +43,49 @@ function buildCalendarCells(entries: DiaryEntry[]) {
   const cells: (CalendarCell | null)[] = [];
   for (let i = 0; i < firstWeekday; i += 1) cells.push(null);
   for (let day = 1; day <= daysInMonth; day += 1) {
-    cells.push({
-      day,
-      isToday: day === today.getDate(),
-      entry: entryByDay.get(day),
-    });
+    cells.push({ day, entry: entryByDay.get(day) });
   }
   while (cells.length % 7 !== 0) cells.push(null);
 
-  return { cells, year, month };
+  return cells;
 }
 
-export default function DiaryCalendar({ entries }: DiaryCalendarProps) {
-  const { cells, year, month } = buildCalendarCells(entries);
+export default function DiaryCalendar({
+  entries,
+  year,
+  month,
+  selectedDay,
+  onPrevMonth,
+  onNextMonth,
+}: DiaryCalendarProps) {
+  const cells = buildCalendarCells(entries, year, month);
+  const today = new Date();
+  const isCurrentMonth =
+    today.getFullYear() === year && today.getMonth() === month;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <p className="shrink-0 pb-2 text-sm font-medium text-black/70 sm:pb-3 sm:text-base dark:text-zinc-300">
-        {year}년 {month + 1}월
-      </p>
+      <div className="flex shrink-0 items-center justify-between pb-2 sm:pb-3">
+        <button
+          type="button"
+          onClick={onPrevMonth}
+          aria-label="이전 달"
+          className={navButtonClass}
+        >
+          ‹
+        </button>
+        <p className="text-sm font-medium text-black/70 sm:text-base dark:text-zinc-300">
+          {year}년 {month + 1}월
+        </p>
+        <button
+          type="button"
+          onClick={onNextMonth}
+          aria-label="다음 달"
+          className={navButtonClass}
+        >
+          ›
+        </button>
+      </div>
       <div className="grid shrink-0 grid-cols-7 gap-1 pb-1 text-center text-[0.65rem] text-black/50 sm:gap-2 sm:text-xs dark:text-zinc-400">
         {WEEKDAY_HEADERS.map((weekday, index) => (
           <span
@@ -78,19 +106,23 @@ export default function DiaryCalendar({ entries }: DiaryCalendarProps) {
         {cells.map((cell, index) => {
           if (!cell) return <div key={index} />;
 
-          const { day, isToday, entry } = cell;
+          const { day, entry } = cell;
+          const isToday = isCurrentMonth && day === today.getDate();
+          const isSelected = selectedDay === day;
 
           const cellContent = (
             <div
               className={`flex h-full flex-col gap-0.5 rounded-xl border p-1 sm:p-1.5 ${
-                isToday
-                  ? "border-black/30 dark:border-white/40"
-                  : "border-black/[.06] dark:border-white/[.08]"
+                isSelected
+                  ? "border-black/60 ring-2 ring-black/30 dark:border-white/70 dark:ring-white/30"
+                  : isToday
+                    ? "border-black/30 dark:border-white/40"
+                    : "border-black/[.06] dark:border-white/[.08]"
               } ${entry ? "bg-white/60 dark:bg-white/[.03]" : ""}`}
             >
               <span
                 className={`text-xs font-semibold sm:text-sm ${
-                  isToday
+                  isToday || isSelected
                     ? "text-black dark:text-zinc-50"
                     : "text-black/70 dark:text-zinc-300"
                 }`}
