@@ -1,20 +1,91 @@
+import type { MoodKey, WeatherKey } from "@/lib/diaryIcons";
+
 export interface DiaryEntry {
   id: string;
   date: string;
   title: string;
+  mood: MoodKey;
+  weather: WeatherKey;
+  hasAttachment: boolean;
 }
 
 const WEEKDAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
 
-export const mockDiaryEntries: DiaryEntry[] = [
-  { id: "1", date: "2026-08-03", title: "여름 끝자락의 소나기" },
-  { id: "2", date: "2026-08-01", title: "말없이 걷던 저녁" },
-  { id: "3", date: "2026-07-29", title: "낡은 사진 한 장" },
-  { id: "4", date: "2026-07-25", title: "빗소리에 잠긴 하루" },
-  { id: "5", date: "2026-07-20", title: "창가에 머문 햇살" },
-  { id: "6", date: "2026-07-15", title: "잊고 있던 약속" },
-  { id: "7", date: "2026-07-10", title: "먼 곳에서 온 편지" },
-].sort((a, b) => (a.date < b.date ? 1 : -1));
+function formatLocalDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function daysAgo(n: number) {
+  const date = new Date();
+  date.setDate(date.getDate() - n);
+  return formatLocalDate(date);
+}
+
+const RAW_ENTRIES: DiaryEntry[] = [
+  {
+    id: "1",
+    date: daysAgo(0),
+    title: "여름 끝자락의 소나기",
+    mood: "sad",
+    weather: "rain",
+    hasAttachment: true,
+  },
+  {
+    id: "2",
+    date: daysAgo(2),
+    title: "말없이 걷던 저녁",
+    mood: "sarcastic",
+    weather: "cloudly",
+    hasAttachment: false,
+  },
+  {
+    id: "3",
+    date: daysAgo(5),
+    title: "낡은 사진 한 장",
+    mood: "smile",
+    weather: "brightness",
+    hasAttachment: true,
+  },
+  {
+    id: "4",
+    date: daysAgo(9),
+    title: "빗소리에 잠긴 하루",
+    mood: "bad",
+    weather: "rain",
+    hasAttachment: false,
+  },
+  {
+    id: "5",
+    date: daysAgo(14),
+    title: "창가에 머문 햇살",
+    mood: "smile",
+    weather: "brightness",
+    hasAttachment: false,
+  },
+  {
+    id: "6",
+    date: daysAgo(19),
+    title: "잊고 있던 약속",
+    mood: "angry",
+    weather: "thunderstorm",
+    hasAttachment: false,
+  },
+  {
+    id: "7",
+    date: daysAgo(24),
+    title: "먼 곳에서 온 편지",
+    mood: "sad",
+    weather: "haze",
+    hasAttachment: true,
+  },
+];
+
+export const mockDiaryEntries = RAW_ENTRIES.sort((a, b) =>
+  a.date < b.date ? 1 : -1
+);
 
 export function getDiaryEntryById(id: string) {
   return mockDiaryEntries.find((entry) => entry.id === id);

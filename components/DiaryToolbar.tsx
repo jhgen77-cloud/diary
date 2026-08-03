@@ -2,20 +2,29 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import filesIcon from "@/images/files.png";
 import calendarIcon from "@/images/calendar.png";
 import searchIcon from "@/images/search.png";
 
 interface DiaryToolbarProps {
-  onSearch: (query: string) => void;
+  initialQuery?: string;
 }
 
 const iconButtonClass =
   "flex shrink-0 items-center justify-center rounded-full p-1.5 transition-transform hover:bg-black/[.06] active:scale-90 active:bg-black/[.12] dark:hover:bg-white/[.08] dark:active:bg-white/[.14]";
 
-export default function DiaryToolbar({ onSearch }: DiaryToolbarProps) {
-  const [query, setQuery] = useState("");
+export default function DiaryToolbar({
+  initialQuery = "",
+}: DiaryToolbarProps) {
+  const router = useRouter();
+  const [query, setQuery] = useState(initialQuery);
+
+  function handleSearch() {
+    const trimmed = query.trim();
+    router.push(trimmed ? `/diary?q=${encodeURIComponent(trimmed)}` : "/diary");
+  }
 
   return (
     <div className="flex shrink-0 items-center gap-3 pb-4 sm:gap-4 sm:pb-6">
@@ -47,7 +56,7 @@ export default function DiaryToolbar({ onSearch }: DiaryToolbarProps) {
       />
       <button
         type="button"
-        onClick={() => onSearch(query)}
+        onClick={handleSearch}
         aria-label="검색"
         className={iconButtonClass}
       >

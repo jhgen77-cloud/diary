@@ -1,26 +1,24 @@
-"use client";
-
-import { useMemo, useState } from "react";
 import DiaryToolbar from "@/components/DiaryToolbar";
 import DiaryEntryList from "@/components/DiaryEntryList";
 import type { DiaryEntry } from "@/lib/mockDiaryEntries";
 
 interface DiaryBrowserProps {
   entries: DiaryEntry[];
+  initialQuery?: string;
 }
 
-export default function DiaryBrowser({ entries }: DiaryBrowserProps) {
-  const [query, setQuery] = useState("");
-
-  const filteredEntries = useMemo(() => {
-    const trimmed = query.trim();
-    if (!trimmed) return entries;
-    return entries.filter((entry) => entry.title.includes(trimmed));
-  }, [entries, query]);
+export default function DiaryBrowser({
+  entries,
+  initialQuery = "",
+}: DiaryBrowserProps) {
+  const trimmed = initialQuery.trim();
+  const filteredEntries = trimmed
+    ? entries.filter((entry) => entry.title.includes(trimmed))
+    : entries;
 
   return (
     <>
-      <DiaryToolbar onSearch={setQuery} />
+      <DiaryToolbar key={initialQuery} initialQuery={initialQuery} />
       <DiaryEntryList entries={filteredEntries} />
     </>
   );

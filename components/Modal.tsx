@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 interface ModalProps {
   title: string;
   size?: "sm" | "lg";
+  closeHref?: string;
   children: ReactNode;
 }
 
@@ -33,8 +34,21 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-export default function Modal({ title, size = "sm", children }: ModalProps) {
+export default function Modal({
+  title,
+  size = "sm",
+  closeHref,
+  children,
+}: ModalProps) {
   const router = useRouter();
+
+  function handleClose() {
+    if (closeHref) {
+      router.push(closeHref);
+    } else {
+      router.back();
+    }
+  }
   const [isMinimized, setIsMinimized] = useState(false);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const dragState = useRef<DragState | null>(null);
@@ -118,7 +132,7 @@ export default function Modal({ title, size = "sm", children }: ModalProps) {
             </button>
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={handleClose}
               aria-label="닫기"
               className={`${controlButtonClass} text-lg`}
             >
