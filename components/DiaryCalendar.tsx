@@ -167,18 +167,14 @@ export default function DiaryCalendar({
             </div>
           );
 
-          if (!entry) {
-            return (
-              <div key={index} className="h-full">
-                {cellContent}
-              </div>
-            );
-          }
+          const href = entry
+            ? `/diary/${entry.id}`
+            : `/diary/date/${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
           return (
             <Link
               key={index}
-              href={`/diary/${entry.id}`}
+              href={href}
               className="block h-full rounded-xl transition-transform active:scale-90"
             >
               {cellContent}
