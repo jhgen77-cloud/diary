@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 interface ModalProps {
   title: string;
   size?: "sm" | "lg";
+  tall?: boolean;
   closeHref?: string;
   children: ReactNode;
 }
@@ -37,6 +38,7 @@ function clamp(value: number, min: number, max: number) {
 export default function Modal({
   title,
   size = "sm",
+  tall = false,
   closeHref,
   children,
 }: ModalProps) {
@@ -93,7 +95,7 @@ export default function Modal({
 
   const dimensionClass = isMinimized
     ? SIZE_CLASSES[size]
-    : `max-h-[80vh] ${SIZE_CLASSES[size]}`;
+    : `${tall ? "h-[92vh]" : "max-h-[80vh]"} ${SIZE_CLASSES[size]}`;
 
   return (
     <div
