@@ -4,9 +4,12 @@ export interface DiaryEntry {
   id: string;
   date: string;
   title: string;
+  content: string;
   mood: MoodKey;
   weather: WeatherKey | null;
   hasAttachment: boolean;
+  /** 최초로 저장된 시각 (ISO 문자열) — 상세 보기의 "작성된 일기입니다" 문구에 사용 */
+  createdAt: string;
 }
 
 const WEEKDAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];

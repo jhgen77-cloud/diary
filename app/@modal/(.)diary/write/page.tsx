@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import DiaryWriteForm from "@/components/DiaryWriteForm";
 
 export default function DiaryWriteModal() {
-  return <DiaryWriteForm />;
+  return (
+    <Suspense fallback={null}>
+      <DiaryWriteForm />
+    </Suspense>
+  );
 }

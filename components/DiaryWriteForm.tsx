@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Modal from "@/components/Modal";
 import DiaryWriteToolbar from "@/components/DiaryWriteToolbar";
 import DiaryDateField from "@/components/DiaryDateField";
@@ -29,6 +29,7 @@ import { formatLocalDate, type DiaryEntry } from "@/lib/mockDiaryEntries";
 import {
   addSavedDiaryEntry,
   removeSavedDiaryEntry,
+  useSavedDiaryEntry,
 } from "@/lib/savedDiaryEntries";
 
 const WEEKDAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
@@ -52,21 +53,54 @@ type DialogState =
 
 export default function DiaryWriteForm() {
   const router = useRouter();
-  // 최초 진입 시의 스냅샷 — "아무 것도 안 한 상태"인지 판단하는 기준이 됩니다.
-  const [initialDefaults] = useState(() => createDefaults());
-  const [date, setDate] = useState(initialDefaults.date);
-  const [mood, setMood] = useState<MoodKey>(initialDefaults.mood);
-  const [weather, setWeather] = useState<WeatherKey | null>(
-    initialDefaults.weather
-  );
-  const [title, setTitle] = useState(initialDefaults.title);
-  const [content, setContent] = useState(initialDefaults.content);
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
+  const existingEntry = useSavedDiaryEntry(editId);
+
+  // "아무 것도 안 한 상태"를 판단하는 기준 스냅샷. 새 글이면 빈 값, 기존 글을
+  // 수정하러 들어왔다면(editId) 그 글을 불러온 뒤 이 값도 함께 갱신됩니다.
+  const [baseline, setBaseline] = useState(() => createDefaults());
+  const [date, setDate] = useState(baseline.date);
+  const [mood, setMood] = useState<MoodKey>(baseline.mood);
+  const [weather, setWeather] = useState<WeatherKey | null>(baseline.weather);
+  const [title, setTitle] = useState(baseline.title);
+  const [content, setContent] = useState(baseline.content);
   const [saved, setSaved] = useState(false);
   const [isAttachOpen, setIsAttachOpen] = useState(false);
   const [dialog, setDialog] = useState<DialogState>({ type: "none" });
   // 이 작성 세션이 목록에 저장될 때 쓸 고유 id — 같은 세션에서 다시 저장하면
-  // 새 항목이 아니라 같은 항목을 덮어씁니다.
+  // 새 항목이 아니라 같은 항목을 덮어씁니다. 기존 글을 수정하는 경우엔 그
+  // 글의 id로 교체됩니다.
   const [entryId, setEntryId] = useState(() => crypto.randomUUID());
+  // 최초 저장 시각(작성 시각). 기존 글을 불러오면 원래 작성 시각을 유지합니다.
+  const createdAtRef = useRef<string | null>(null);
+  const hasLoadedEditRef = useRef(false);
+
+  useEffect(() => {
+    if (!editId || hasLoadedEditRef.current || !existingEntry) return;
+    hasLoadedEditRef.current = true;
+
+    const [entryYear, entryMonth, entryDay] = existingEntry.date
+      .split("-")
+      .map(Number);
+    const loadedDate = new Date(entryYear, entryMonth - 1, entryDay);
+
+    setDate(loadedDate);
+    setMood(existingEntry.mood);
+    setWeather(existingEntry.weather);
+    setTitle(existingEntry.title);
+    setContent(existingEntry.content);
+    setEntryId(existingEntry.id);
+    createdAtRef.current = existingEntry.createdAt;
+    setSaved(true);
+    setBaseline({
+      date: loadedDate,
+      mood: existingEntry.mood,
+      weather: existingEntry.weather,
+      title: existingEntry.title,
+      content: existingEntry.content,
+    });
+  }, [editId, existingEntry]);
 
   // 첨부 이미지 상태는 "시간을 붙잡다" 모달(이 컴포넌트)이 살아있는 동안 유지됩니다.
   // 이미지 첨부 모달은 열고 닫아도 이 상태를 그대로 두므로 첨부 내용이 사라지지 않습니다.
@@ -86,13 +120,13 @@ export default function DiaryWriteForm() {
   }, []);
 
   const hasAttachment = attachedImages.length > 0;
-  // 최초 진입 상태에서 조금이라도 값이 바뀌었는지 — 닫기 경고를 띄울지 여부에 씁니다.
+  // 최초(또는 불러온 글의) 상태에서 조금이라도 값이 바뀌었는지 — 닫기 경고를 띄울지 여부에 씁니다.
   const isDirty =
-    title !== initialDefaults.title ||
-    content !== initialDefaults.content ||
-    mood !== initialDefaults.mood ||
-    weather !== initialDefaults.weather ||
-    date.getTime() !== initialDefaults.date.getTime() ||
+    title !== baseline.title ||
+    content !== baseline.content ||
+    mood !== baseline.mood ||
+    weather !== baseline.weather ||
+    date.getTime() !== baseline.date.getTime() ||
     hasAttachment;
 
   function handleReset() {
@@ -109,16 +143,23 @@ export default function DiaryWriteForm() {
     });
     setSelectedImageId(null);
     setEntryId(crypto.randomUUID());
+    setBaseline(defaults);
+    createdAtRef.current = null;
   }
 
   function buildEntryFromState(): DiaryEntry {
+    if (!createdAtRef.current) {
+      createdAtRef.current = new Date().toISOString();
+    }
     return {
       id: entryId,
       date: formatLocalDate(date),
       title: title.trim() || "제목 없음",
+      content,
       mood,
       weather,
       hasAttachment,
+      createdAt: createdAtRef.current,
     };
   }
 

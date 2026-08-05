@@ -92,3 +92,10 @@ export function removeSavedDiaryEntry(id: string) {
 export function useSavedDiaryEntries(): DiaryEntry[] {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
+
+/** id 하나에 해당하는 로컬 저장 일기를 구독합니다. 없으면 null. */
+export function useSavedDiaryEntry(id: string | null | undefined): DiaryEntry | null {
+  const entries = useSavedDiaryEntries();
+  if (!id) return null;
+  return entries.find((entry) => entry.id === id) ?? null;
+}

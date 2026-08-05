@@ -25,6 +25,7 @@ import zoomOutIcon from "@/images/zoom-out.png";
 import warningSignIcon from "@/images/warning-sign.png";
 import questionMarkIcon from "@/images/question-mark.png";
 import letterIIcon from "@/images/letter-i.png";
+import writing1Icon from "@/images/writing1.png";
 
 export const MOOD_ICONS = {
   angry: angryIcon,
@@ -76,6 +77,7 @@ export {
   warningSignIcon,
   questionMarkIcon,
   letterIIcon,
+  writing1Icon,
 };
 
 export type MoodKey = keyof typeof MOOD_ICONS;
