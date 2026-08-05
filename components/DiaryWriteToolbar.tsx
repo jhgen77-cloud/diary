@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRef } from "react";
 import {
   saveIcon,
+  saveSavedIcon,
   calendarIcon,
   wasteBasketIcon,
   imageAttachmentIcon,
@@ -14,6 +15,7 @@ interface DiaryWriteToolbarProps {
   onSave: () => void;
   onReset: () => void;
   onAttach: (file: File) => void;
+  saved: boolean;
 }
 
 const actionButtonClass =
@@ -23,6 +25,7 @@ export default function DiaryWriteToolbar({
   onSave,
   onReset,
   onAttach,
+  saved,
 }: DiaryWriteToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -30,7 +33,12 @@ export default function DiaryWriteToolbar({
     <div className="flex shrink-0 items-center gap-1 sm:gap-2">
       <button type="button" onClick={onSave} className={actionButtonClass}>
         <span className="relative aspect-square h-5 shrink-0 sm:h-6">
-          <Image src={saveIcon} alt="저장" fill className="object-contain" />
+          <Image
+            src={saved ? saveSavedIcon : saveIcon}
+            alt="저장"
+            fill
+            className="object-contain"
+          />
         </span>
         <span className="text-[0.65rem] text-black/70 sm:text-xs dark:text-zinc-300">
           저장

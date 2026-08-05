@@ -27,6 +27,7 @@ export default function DiaryWriteForm() {
   );
   const [title, setTitle] = useState(() => createDefaults().title);
   const [content, setContent] = useState(() => createDefaults().content);
+  const [isSaved, setIsSaved] = useState(false);
 
   function handleReset() {
     const defaults = createDefaults();
@@ -35,10 +36,17 @@ export default function DiaryWriteForm() {
     setWeather(defaults.weather);
     setTitle(defaults.title);
     setContent(defaults.content);
+    setIsSaved(false);
   }
 
   function handleSave() {
     // 저장 기능은 준비 중입니다.
+    setIsSaved(true);
+  }
+
+  function handleMoodChange(nextMood: MoodKey) {
+    setMood(nextMood);
+    handleSave(); // 기분 선택 시 자동 저장
   }
 
   function handleAttach(file: File) {
@@ -51,11 +59,12 @@ export default function DiaryWriteForm() {
         onSave={handleSave}
         onReset={handleReset}
         onAttach={handleAttach}
+        saved={isSaved}
       />
       <div className="flex shrink-0 flex-col divide-y divide-black/[.06] rounded-2xl border border-black/[.06] dark:divide-white/[.08] dark:border-white/[.08]">
         <DiaryDateField value={date} onChange={setDate} />
-        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1 sm:gap-3 sm:px-4">
-          <DiaryMoodField value={mood} onChange={setMood} />
+        <div className="flex flex-wrap items-center gap-2 px-3 py-1 sm:gap-3 sm:px-4">
+          <DiaryMoodField value={mood} onChange={handleMoodChange} />
           <DiaryWeatherField value={weather} onChange={setWeather} />
         </div>
         <DiaryTitleField value={title} onChange={setTitle} />

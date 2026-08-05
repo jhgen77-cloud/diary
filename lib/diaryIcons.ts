@@ -13,6 +13,7 @@ import snowIcon from "@/images/weather/snow.png";
 import thunderstormIcon from "@/images/weather/thunderstorm.png";
 
 import saveIcon from "@/images/save.png";
+import saveSavedIcon from "@/images/save-saved.png";
 import wasteBasketIcon from "@/images/waste-basket.png";
 import calendarIcon from "@/images/calendar.png";
 import imageAttachmentIcon from "@/images/image-attachment.png";
@@ -53,7 +54,13 @@ export const WEATHER_LABELS = {
   thunderstorm: "뇌우",
 } as const;
 
-export { imageAttachmentIcon, saveIcon, wasteBasketIcon, calendarIcon };
+export {
+  imageAttachmentIcon,
+  saveIcon,
+  saveSavedIcon,
+  wasteBasketIcon,
+  calendarIcon,
+};
 
 export type MoodKey = keyof typeof MOOD_ICONS;
 export type WeatherKey = keyof typeof WEATHER_ICONS;

@@ -40,27 +40,19 @@ export default function DiaryWeatherField({
   return (
     <div
       ref={containerRef}
-      className="flex min-w-28 shrink-0 items-center justify-between gap-2 rounded-xl border border-black/[.06] py-1 pr-1 pl-2 sm:min-w-32 dark:border-white/[.08]"
+      className="flex min-w-0 flex-1 items-center gap-2"
     >
       <FieldLabel>날씨</FieldLabel>
-      <div className="relative">
+      <div className="relative min-w-0 flex-1">
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
           aria-label="날씨 선택"
           aria-expanded={isOpen}
-          className={`flex shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/[.06] dark:hover:bg-white/[.08] ${
-            isOpen || value
-              ? "h-5 w-5 sm:h-6 sm:w-6"
-              : "h-5 px-2 sm:h-6 sm:px-2.5"
-          }`}
+          className="flex h-5 w-full items-center justify-end gap-1 rounded-xl border border-black/[.06] px-2 transition-colors hover:bg-black/[.06] sm:h-6 sm:px-2.5 dark:border-white/[.08] dark:hover:bg-white/[.08]"
         >
-          {isOpen ? (
-            <span className="text-[0.6rem] text-black/50 sm:text-[0.65rem] dark:text-zinc-400">
-              ▴
-            </span>
-          ) : value ? (
-            <span className="relative aspect-square h-full w-full p-1">
+          {value ? (
+            <span className="relative aspect-square h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4">
               <Image
                 src={WEATHER_ICONS[value]}
                 alt={WEATHER_LABELS[value]}
@@ -73,6 +65,13 @@ export default function DiaryWeatherField({
               [선택안함]
             </span>
           )}
+          <span
+            className={`text-[0.55rem] text-black/50 transition-transform sm:text-[0.6rem] dark:text-zinc-400 ${
+              isOpen ? "rotate-180" : ""
+            }`}
+          >
+            ▾
+          </span>
         </button>
         {isOpen && (
           <div className="absolute top-full right-0 z-10 mt-1 flex flex-col items-center gap-0.5 rounded-xl border border-black/10 bg-zinc-50 p-1.5 shadow-lg dark:border-white/15 dark:bg-zinc-900">
