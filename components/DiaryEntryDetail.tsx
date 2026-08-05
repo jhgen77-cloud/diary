@@ -20,8 +20,10 @@ interface DiaryEntryDetailProps {
   id: string;
 }
 
+// 기분/날씨 아이콘(래핑 없는 순수 아이콘 크기)과 바깥 테두리를 맞추기 위해
+// 버튼 자체를 같은 크기(h-7/h-8)로 맞췄습니다.
 const iconButtonClass =
-  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/[.06] active:scale-90 sm:h-9 sm:w-9 dark:hover:bg-white/[.08]";
+  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/[.06] active:scale-90 sm:h-8 sm:w-8 dark:hover:bg-white/[.08]";
 
 type DialogState = { type: "none" } | { type: "delete-confirm" } | { type: "delete-done" };
 
@@ -53,12 +55,14 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
   }
 
   if (!entry) {
+    // 찾을 수 없는 글(이미 삭제됐거나 잘못된 링크)도 실제 삭제 흐름과 같은
+    // "삭제되었습니다." 알림창으로 안내합니다.
     return (
-      <Modal title="그날을 거닐다" size="sm">
-        <p className="text-sm text-black/60 sm:text-base dark:text-zinc-400">
-          일기를 찾을 수 없습니다. 삭제되었거나 잘못된 링크일 수 있습니다.
-        </p>
-      </Modal>
+      <NoticeDialog
+        icon={letterIIcon}
+        message="삭제되었습니다."
+        onConfirm={() => router.back()}
+      />
     );
   }
 
@@ -72,15 +76,14 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
 
   return (
     <>
-      <Modal title="그날을 거닐다" size="lg" tall>
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
-          <div className="flex shrink-0 items-start justify-between gap-3">
-            <div className="flex flex-col gap-2">
-              <p className="text-sm text-black/70 sm:text-base dark:text-zinc-300">
-                {year}년 {month}월 {day}일 ({weekday})
-              </p>
+      <Modal title="그날을 거닐다" size="lg" heightVh={61}>
+        <div className="flex min-h-0 flex-1 flex-col gap-2">
+          <div className="flex shrink-0 items-start justify-between gap-3 rounded-2xl border border-black/[.06] p-2 sm:p-2.5 dark:border-white/[.08]">
+            {/* 좌측: 기분/날씨 아이콘 → 제목, 우측: 삭제/수정 아이콘 → 날짜 — 같은
+                구조(아이콘 줄 + 텍스트, gap-1)로 맞춰서 상하 간격이 정확히 동일합니다. */}
+            <div className="flex min-w-0 flex-1 flex-col gap-1">
               <div className="flex items-center gap-1.5">
-                <span className="relative h-6 w-6 shrink-0 sm:h-7 sm:w-7">
+                <span className="relative h-7 w-7 shrink-0 sm:h-8 sm:w-8">
                   <Image
                     src={MOOD_ICONS[entry.mood]}
                     alt={entry.mood}
@@ -89,7 +92,7 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
                   />
                 </span>
                 {entry.weather && (
-                  <span className="relative h-6 w-6 shrink-0 sm:h-7 sm:w-7">
+                  <span className="relative h-7 w-7 shrink-0 sm:h-8 sm:w-8">
                     <Image
                       src={WEATHER_ICONS[entry.weather]}
                       alt={entry.weather}
@@ -99,44 +102,48 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
                   </span>
                 )}
               </div>
+              <p className="truncate text-lg font-semibold text-black sm:text-xl dark:text-zinc-50">
+                {entry.title}
+              </p>
             </div>
-            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-              <button
-                type="button"
-                onClick={handleDeleteClick}
-                aria-label="삭제"
-                className={iconButtonClass}
-              >
-                <span className="relative h-4 w-4 sm:h-5 sm:w-5">
-                  <Image
-                    src={wasteBasketIcon}
-                    alt="삭제"
-                    fill
-                    className="object-contain"
-                  />
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={handleEditClick}
-                aria-label="수정"
-                className={iconButtonClass}
-              >
-                <span className="relative h-4 w-4 sm:h-5 sm:w-5">
-                  <Image
-                    src={writing1Icon}
-                    alt="수정"
-                    fill
-                    className="object-contain"
-                  />
-                </span>
-              </button>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+                <button
+                  type="button"
+                  onClick={handleDeleteClick}
+                  aria-label="삭제"
+                  className={iconButtonClass}
+                >
+                  <span className="relative h-7 w-7 sm:h-8 sm:w-8">
+                    <Image
+                      src={wasteBasketIcon}
+                      alt="삭제"
+                      fill
+                      className="object-contain"
+                    />
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEditClick}
+                  aria-label="수정"
+                  className={iconButtonClass}
+                >
+                  <span className="relative h-7 w-7 sm:h-8 sm:w-8">
+                    <Image
+                      src={writing1Icon}
+                      alt="수정"
+                      fill
+                      className="object-contain"
+                    />
+                  </span>
+                </button>
+              </div>
+              <p className="text-sm whitespace-nowrap text-black/70 sm:text-base dark:text-zinc-300">
+                {year}년 {month}월 {day}일 ({weekday})
+              </p>
             </div>
           </div>
-
-          <p className="shrink-0 truncate text-lg font-semibold text-black sm:text-xl dark:text-zinc-50">
-            {entry.title}
-          </p>
 
           <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-black/[.06] p-3 sm:p-4 dark:border-white/[.08]">
             <div className="min-h-0 flex-1 overflow-y-auto text-sm whitespace-pre-wrap text-black sm:text-base dark:text-zinc-50">

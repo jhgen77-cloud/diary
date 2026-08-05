@@ -9,6 +9,8 @@ interface ModalProps {
   title: string;
   size?: "sm" | "lg";
   tall?: boolean;
+  /** 지정하면 뷰포트 높이의 이 비율(vh)로 고정 높이를 씁니다. tall보다 우선합니다. */
+  heightVh?: number;
   closeHref?: string;
   onClose?: () => void;
   /** false면 배경을 어둡게 덮지 않고, 다른 모달 위에 겹쳐 뜨는 창으로 렌더링합니다. */
@@ -46,6 +48,7 @@ export default function Modal({
   title,
   size = "sm",
   tall = false,
+  heightVh,
   closeHref,
   onClose,
   overlay = true,
@@ -112,7 +115,7 @@ export default function Modal({
 
   const dimensionClass = isMinimized
     ? SIZE_CLASSES[size]
-    : `${tall ? "h-[92vh]" : "max-h-[80vh]"} ${SIZE_CLASSES[size]}`;
+    : `${heightVh ? "" : tall ? "h-[92vh]" : "max-h-[80vh]"} ${SIZE_CLASSES[size]}`;
 
   if (!mounted) return null;
 
@@ -128,7 +131,10 @@ export default function Modal({
     >
       <div
         ref={boxRef}
-        style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
+        style={{
+          transform: `translate(${offset.x}px, ${offset.y}px)`,
+          ...(heightVh && !isMinimized ? { height: `${heightVh}vh` } : {}),
+        }}
         className={`flex w-full flex-col rounded-3xl border border-black/10 bg-zinc-50 shadow-lg dark:border-white/15 dark:bg-zinc-900 ${
           overlay ? "" : "pointer-events-auto"
         } ${dimensionClass}`}

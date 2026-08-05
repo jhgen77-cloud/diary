@@ -6,7 +6,9 @@ import type { DiaryEntry } from "@/lib/mockDiaryEntries";
 const STORAGE_KEY = "diary:savedEntries";
 // 스키마 버전. 이전 버전으로 저장된(또는 개발 중 쌓인 임시) 데이터는 무시하고
 // 빈 목록에서 다시 시작하려면 이 값을 올리면 됩니다.
-const SCHEMA_VERSION = 1;
+// v2: DiaryEntry에 content/createdAt이 추가되어, 그 필드가 없던 이전 데이터를
+// 걸러내기 위해 올렸습니다(상세 보기에서 "NaN년 ..." 오류가 나던 원인).
+const SCHEMA_VERSION = 2;
 
 interface StoredPayload {
   v: number;
@@ -18,6 +20,19 @@ const listeners = new Set<() => void>();
 let cachedRaw: string | null = null;
 let cachedSnapshot: DiaryEntry[] = [];
 
+function isValidEntry(entry: unknown): entry is DiaryEntry {
+  if (!entry || typeof entry !== "object") return false;
+  const e = entry as Partial<DiaryEntry>;
+  return (
+    typeof e.id === "string" &&
+    typeof e.date === "string" &&
+    typeof e.title === "string" &&
+    typeof e.content === "string" &&
+    typeof e.createdAt === "string" &&
+    !Number.isNaN(new Date(e.createdAt).getTime())
+  );
+}
+
 function parse(raw: string | null): DiaryEntry[] {
   if (!raw) return [];
   try {
@@ -28,7 +43,8 @@ function parse(raw: string | null): DiaryEntry[] {
       (parsed as StoredPayload).v === SCHEMA_VERSION &&
       Array.isArray((parsed as StoredPayload).entries)
     ) {
-      return (parsed as StoredPayload).entries;
+      // 형식이 어긋난 항목(예: content/createdAt 누락)은 개별적으로 걸러냅니다.
+      return (parsed as StoredPayload).entries.filter(isValidEntry);
     }
     // 버전이 다르거나(예전 형식 포함) 형태가 다르면 임시 데이터로 간주하고 비웁니다.
     return [];
