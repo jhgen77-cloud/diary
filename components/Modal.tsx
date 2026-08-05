@@ -2,13 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import {
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  type ReactNode,
-} from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useMounted } from "@/lib/useMounted";
 
 interface ModalProps {
   title: string;
@@ -47,10 +42,6 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function noopSubscribe() {
-  return () => {};
-}
-
 export default function Modal({
   title,
   size = "sm",
@@ -80,11 +71,7 @@ export default function Modal({
   // 겹쳐 뜨는(overlay=false) 모달을 body에 직접 포털로 붙여서, 부모 쪽 transform(다른
   // 모달의 드래그 이동 등)이 fixed 포지셔닝 기준을 바꿔버리는 문제 없이 화면(바탕화면)
   // 전체를 기준으로 자유롭게 이동할 수 있게 합니다.
-  const mounted = useSyncExternalStore(
-    noopSubscribe,
-    () => true,
-    () => false
-  );
+  const mounted = useMounted();
 
   useEffect(() => {
     function handlePointerMove(event: PointerEvent) {

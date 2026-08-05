@@ -140,14 +140,16 @@ export default function DiaryCalendar({
                         className="object-contain"
                       />
                     </span>
-                    <span className="relative h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5">
-                      <Image
-                        src={WEATHER_ICONS[entry.weather]}
-                        alt={entry.weather}
-                        fill
-                        className="object-contain"
-                      />
-                    </span>
+                    {entry.weather && (
+                      <span className="relative h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5">
+                        <Image
+                          src={WEATHER_ICONS[entry.weather]}
+                          alt={entry.weather}
+                          fill
+                          className="object-contain"
+                        />
+                      </span>
+                    )}
                     {entry.hasAttachment && (
                       <span className="relative h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5">
                         <Image

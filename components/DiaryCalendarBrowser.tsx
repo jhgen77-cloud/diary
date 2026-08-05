@@ -5,6 +5,7 @@ import DiaryToolbar from "@/components/DiaryToolbar";
 import DiaryCalendarDateSearch from "@/components/DiaryCalendarDateSearch";
 import DiaryCalendar from "@/components/DiaryCalendar";
 import type { DiaryEntry } from "@/lib/mockDiaryEntries";
+import { useSavedDiaryEntries } from "@/lib/savedDiaryEntries";
 
 interface DiaryCalendarBrowserProps {
   entries: DiaryEntry[];
@@ -13,6 +14,11 @@ interface DiaryCalendarBrowserProps {
 export default function DiaryCalendarBrowser({
   entries,
 }: DiaryCalendarBrowserProps) {
+  const savedEntries = useSavedDiaryEntries();
+  // "시간을 붙잡다"에서 저장한 글(로컬 저장)을 목업 목록 뒤에 붙여서, 같은 날짜에
+  // 목업 항목이 있어도 새로 저장한 글이 달력 칸에 우선 표시되게 합니다.
+  const mergedEntries = [...entries, ...savedEntries];
+
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -53,7 +59,7 @@ export default function DiaryCalendarBrowser({
       <DiaryToolbar />
       <DiaryCalendarDateSearch onSearch={handleDateSearch} />
       <DiaryCalendar
-        entries={entries}
+        entries={mergedEntries}
         year={year}
         month={month}
         selectedDay={selectedDay}

@@ -22,6 +22,9 @@ import addImageIcon from "@/images/add-image.png";
 import removeSelectionIcon from "@/images/remove-selection.png";
 import zoomInIcon from "@/images/zoom-in.png";
 import zoomOutIcon from "@/images/zoom-out.png";
+import warningSignIcon from "@/images/warning-sign.png";
+import questionMarkIcon from "@/images/question-mark.png";
+import letterIIcon from "@/images/letter-i.png";
 
 export const MOOD_ICONS = {
   angry: angryIcon,
@@ -70,6 +73,9 @@ export {
   saveSavedIcon,
   wasteBasketIcon,
   calendarIcon,
+  warningSignIcon,
+  questionMarkIcon,
+  letterIIcon,
 };
 
 export type MoodKey = keyof typeof MOOD_ICONS;

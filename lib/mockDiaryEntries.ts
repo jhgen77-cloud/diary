@@ -5,13 +5,13 @@ export interface DiaryEntry {
   date: string;
   title: string;
   mood: MoodKey;
-  weather: WeatherKey;
+  weather: WeatherKey | null;
   hasAttachment: boolean;
 }
 
 const WEEKDAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
 
-function formatLocalDate(date: Date) {
+export function formatLocalDate(date: Date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
@@ -83,9 +83,11 @@ const RAW_ENTRIES: DiaryEntry[] = [
   },
 ];
 
-export const mockDiaryEntries = RAW_ENTRIES.sort((a, b) =>
-  a.date < b.date ? 1 : -1
-);
+export function sortDiaryEntriesByDateDesc(entries: DiaryEntry[]) {
+  return [...entries].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+}
+
+export const mockDiaryEntries = sortDiaryEntriesByDateDesc(RAW_ENTRIES);
 
 export function getDiaryEntryById(id: string) {
   return mockDiaryEntries.find((entry) => entry.id === id);

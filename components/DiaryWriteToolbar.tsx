@@ -13,7 +13,7 @@ import {
 
 interface DiaryWriteToolbarProps {
   onSave: () => void;
-  onReset: () => void;
+  onDelete: () => void;
   onOpenAttach: () => void;
   saved: boolean;
   hasAttachment: boolean;
@@ -24,7 +24,7 @@ const actionButtonClass =
 
 export default function DiaryWriteToolbar({
   onSave,
-  onReset,
+  onDelete,
   onOpenAttach,
   saved,
   hasAttachment,
@@ -57,7 +57,7 @@ export default function DiaryWriteToolbar({
           달력
         </span>
       </Link>
-      <button type="button" onClick={onReset} className={actionButtonClass}>
+      <button type="button" onClick={onDelete} className={actionButtonClass}>
         <span className="relative aspect-square h-5 shrink-0 sm:h-6">
           <Image
             src={wasteBasketIcon}
