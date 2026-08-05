@@ -17,6 +17,11 @@ import saveSavedIcon from "@/images/save-saved.png";
 import wasteBasketIcon from "@/images/waste-basket.png";
 import calendarIcon from "@/images/calendar.png";
 import imageAttachmentIcon from "@/images/image-attachment.png";
+import imageAttachmentSavedIcon from "@/images/image-attachment-saved.png";
+import addImageIcon from "@/images/add-image.png";
+import removeSelectionIcon from "@/images/remove-selection.png";
+import zoomInIcon from "@/images/zoom-in.png";
+import zoomOutIcon from "@/images/zoom-out.png";
 
 export const MOOD_ICONS = {
   angry: angryIcon,
@@ -56,6 +61,11 @@ export const WEATHER_LABELS = {
 
 export {
   imageAttachmentIcon,
+  imageAttachmentSavedIcon,
+  addImageIcon,
+  removeSelectionIcon,
+  zoomInIcon,
+  zoomOutIcon,
   saveIcon,
   saveSavedIcon,
   wasteBasketIcon,

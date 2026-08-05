@@ -1,13 +1,25 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
 interface ModalProps {
   title: string;
   size?: "sm" | "lg";
   tall?: boolean;
   closeHref?: string;
+  onClose?: () => void;
+  /** false면 배경을 어둡게 덮지 않고, 다른 모달 위에 겹쳐 뜨는 창으로 렌더링합니다. */
+  overlay?: boolean;
+  /** 처음 뜰 때의 화면 중앙 기준 오프셋(px). 다른 모달과 겹치지 않게 살짝 띄우는 용도. */
+  defaultOffset?: { x: number; y: number };
   children: ReactNode;
 }
 
@@ -35,26 +47,44 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+function noopSubscribe() {
+  return () => {};
+}
+
 export default function Modal({
   title,
   size = "sm",
   tall = false,
   closeHref,
+  onClose,
+  overlay = true,
+  defaultOffset,
   children,
 }: ModalProps) {
   const router = useRouter();
 
   function handleClose() {
-    if (closeHref) {
+    if (onClose) {
+      onClose();
+    } else if (closeHref) {
       router.push(closeHref);
     } else {
       router.back();
     }
   }
   const [isMinimized, setIsMinimized] = useState(false);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [offset, setOffset] = useState(() => defaultOffset ?? { x: 0, y: 0 });
   const dragState = useRef<DragState | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+
+  // 겹쳐 뜨는(overlay=false) 모달을 body에 직접 포털로 붙여서, 부모 쪽 transform(다른
+  // 모달의 드래그 이동 등)이 fixed 포지셔닝 기준을 바꿔버리는 문제 없이 화면(바탕화면)
+  // 전체를 기준으로 자유롭게 이동할 수 있게 합니다.
+  const mounted = useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false
+  );
 
   useEffect(() => {
     function handlePointerMove(event: PointerEvent) {
@@ -97,16 +127,24 @@ export default function Modal({
     ? SIZE_CLASSES[size]
     : `${tall ? "h-[92vh]" : "max-h-[80vh]"} ${SIZE_CLASSES[size]}`;
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+      className={`fixed inset-0 flex items-center justify-center p-4 ${
+        overlay
+          ? "z-50 bg-black/40 backdrop-blur-sm"
+          : "z-[60] pointer-events-none"
+      }`}
     >
       <div
         ref={boxRef}
         style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
-        className={`flex w-full flex-col rounded-3xl border border-black/10 bg-zinc-50 shadow-lg dark:border-white/15 dark:bg-zinc-900 ${dimensionClass}`}
+        className={`flex w-full flex-col rounded-3xl border border-black/10 bg-zinc-50 shadow-lg dark:border-white/15 dark:bg-zinc-900 ${
+          overlay ? "" : "pointer-events-auto"
+        } ${dimensionClass}`}
       >
         <header
           onPointerDown={handleHeaderPointerDown}
@@ -151,6 +189,7 @@ export default function Modal({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

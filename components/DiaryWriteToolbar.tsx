@@ -2,20 +2,21 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRef } from "react";
 import {
   saveIcon,
   saveSavedIcon,
   calendarIcon,
   wasteBasketIcon,
   imageAttachmentIcon,
+  imageAttachmentSavedIcon,
 } from "@/lib/diaryIcons";
 
 interface DiaryWriteToolbarProps {
   onSave: () => void;
   onReset: () => void;
-  onAttach: (file: File) => void;
+  onOpenAttach: () => void;
   saved: boolean;
+  hasAttachment: boolean;
 }
 
 const actionButtonClass =
@@ -24,11 +25,10 @@ const actionButtonClass =
 export default function DiaryWriteToolbar({
   onSave,
   onReset,
-  onAttach,
+  onOpenAttach,
   saved,
+  hasAttachment,
 }: DiaryWriteToolbarProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   return (
     <div className="flex shrink-0 items-center gap-1 sm:gap-2">
       <button type="button" onClick={onSave} className={actionButtonClass}>
@@ -72,12 +72,12 @@ export default function DiaryWriteToolbar({
       </button>
       <button
         type="button"
-        onClick={() => fileInputRef.current?.click()}
+        onClick={onOpenAttach}
         className={actionButtonClass}
       >
         <span className="relative aspect-square h-5 shrink-0 sm:h-6">
           <Image
-            src={imageAttachmentIcon}
+            src={hasAttachment ? imageAttachmentSavedIcon : imageAttachmentIcon}
             alt="사진 첨부"
             fill
             className="object-contain"
@@ -86,17 +86,6 @@ export default function DiaryWriteToolbar({
         <span className="text-[0.65rem] text-black/70 sm:text-xs dark:text-zinc-300">
           첨부
         </span>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) onAttach(file);
-            event.target.value = "";
-          }}
-        />
       </button>
     </div>
   );
