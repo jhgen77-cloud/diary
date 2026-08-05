@@ -18,70 +18,9 @@ export function formatLocalDate(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function daysAgo(n: number) {
-  const date = new Date();
-  date.setDate(date.getDate() - n);
-  return formatLocalDate(date);
-}
-
-const RAW_ENTRIES: DiaryEntry[] = [
-  {
-    id: "1",
-    date: daysAgo(0),
-    title: "여름 끝자락의 소나기",
-    mood: "sad",
-    weather: "rain",
-    hasAttachment: true,
-  },
-  {
-    id: "2",
-    date: daysAgo(2),
-    title: "말없이 걷던 저녁",
-    mood: "sarcastic",
-    weather: "cloudly",
-    hasAttachment: false,
-  },
-  {
-    id: "3",
-    date: daysAgo(5),
-    title: "낡은 사진 한 장",
-    mood: "smile",
-    weather: "brightness",
-    hasAttachment: true,
-  },
-  {
-    id: "4",
-    date: daysAgo(9),
-    title: "빗소리에 잠긴 하루",
-    mood: "bad",
-    weather: "rain",
-    hasAttachment: false,
-  },
-  {
-    id: "5",
-    date: daysAgo(14),
-    title: "창가에 머문 햇살",
-    mood: "smile",
-    weather: "brightness",
-    hasAttachment: false,
-  },
-  {
-    id: "6",
-    date: daysAgo(19),
-    title: "잊고 있던 약속",
-    mood: "angry",
-    weather: "thunderstorm",
-    hasAttachment: false,
-  },
-  {
-    id: "7",
-    date: daysAgo(24),
-    title: "먼 곳에서 온 편지",
-    mood: "sad",
-    weather: "haze",
-    hasAttachment: true,
-  },
-];
+// 임시 목업 일기는 모두 제거했습니다 — 목록/달력에는 사용자가 실제로 저장한
+// 글만 표시됩니다 (@/lib/savedDiaryEntries 참고).
+const RAW_ENTRIES: DiaryEntry[] = [];
 
 export function sortDiaryEntriesByDateDesc(entries: DiaryEntry[]) {
   return [...entries].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
