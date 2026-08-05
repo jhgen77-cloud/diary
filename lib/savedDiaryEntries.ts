@@ -8,7 +8,8 @@ const STORAGE_KEY = "diary:savedEntries";
 // 빈 목록에서 다시 시작하려면 이 값을 올리면 됩니다.
 // v2: DiaryEntry에 content/createdAt이 추가되어, 그 필드가 없던 이전 데이터를
 // 걸러내기 위해 올렸습니다(상세 보기에서 "NaN년 ..." 오류가 나던 원인).
-const SCHEMA_VERSION = 2;
+// v3: DiaryEntry에 images(첨부 이미지 data URL 목록)가 추가되었습니다.
+const SCHEMA_VERSION = 3;
 
 interface StoredPayload {
   v: number;
@@ -29,7 +30,8 @@ function isValidEntry(entry: unknown): entry is DiaryEntry {
     typeof e.title === "string" &&
     typeof e.content === "string" &&
     typeof e.createdAt === "string" &&
-    !Number.isNaN(new Date(e.createdAt).getTime())
+    !Number.isNaN(new Date(e.createdAt).getTime()) &&
+    Array.isArray(e.images)
   );
 }
 
@@ -55,7 +57,12 @@ function parse(raw: string | null): DiaryEntry[] {
 
 function persist(entries: DiaryEntry[]) {
   const payload: StoredPayload = { v: SCHEMA_VERSION, entries };
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    // 저장 용량 초과 등으로 실패해도 앱이 죽지 않도록 방어합니다.
+    console.error("일기 저장 공간이 부족합니다.", error);
+  }
 }
 
 function getSnapshot(): DiaryEntry[] {

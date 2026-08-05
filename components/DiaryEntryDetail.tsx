@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Modal from "@/components/Modal";
 import NoticeDialog from "@/components/NoticeDialog";
+import DiaryEntryImages from "@/components/DiaryEntryImages";
 import { formatDiaryDate } from "@/lib/mockDiaryEntries";
 import { useSavedDiaryEntry, removeSavedDiaryEntry } from "@/lib/savedDiaryEntries";
 import {
@@ -145,7 +146,8 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
             </div>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-black/[.06] p-3 sm:p-4 dark:border-white/[.08]">
+          <div className="flex min-h-0 flex-1 flex-col gap-2 rounded-2xl border border-black/[.06] p-3 sm:p-4 dark:border-white/[.08]">
+            <DiaryEntryImages images={entry.images} />
             <div className="min-h-0 flex-1 overflow-y-auto text-sm whitespace-pre-wrap text-black sm:text-base dark:text-zinc-50">
               {entry.content}
             </div>

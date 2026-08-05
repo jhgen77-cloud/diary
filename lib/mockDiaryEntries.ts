@@ -8,6 +8,8 @@ export interface DiaryEntry {
   mood: MoodKey;
   weather: WeatherKey | null;
   hasAttachment: boolean;
+  /** 첨부 이미지(리사이즈된 data URL 목록) — 좌측부터 첨부한 순서 */
+  images: string[];
   /** 최초로 저장된 시각 (ISO 문자열) — 상세 보기의 "작성된 일기입니다" 문구에 사용 */
   createdAt: string;
 }

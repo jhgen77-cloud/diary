@@ -23,6 +23,8 @@ import {
   MAX_ZOOM,
   MIN_ZOOM,
   isSameImageFile,
+  fileToStoredImage,
+  storedImageToFile,
   type AttachedImage,
 } from "@/lib/imageAttachment";
 import { formatLocalDate, type DiaryEntry } from "@/lib/mockDiaryEntries";
@@ -76,6 +78,23 @@ export default function DiaryWriteForm() {
   const createdAtRef = useRef<string | null>(null);
   const hasLoadedEditRef = useRef(false);
 
+  // 첨부 이미지 상태는 "시간을 붙잡다" 모달(이 컴포넌트)이 살아있는 동안 유지됩니다.
+  // 이미지 첨부 모달은 열고 닫아도 이 상태를 그대로 두므로 첨부 내용이 사라지지 않습니다.
+  const [attachedImages, setAttachedImages] = useState<AttachedImage[]>([]);
+  const [selectedImageId, setSelectedImageId] = useState<number | null>(null);
+  const nextImageId = useRef(0);
+  const attachedImagesRef = useRef<AttachedImage[]>([]);
+
+  useEffect(() => {
+    attachedImagesRef.current = attachedImages;
+  }, [attachedImages]);
+
+  useEffect(() => {
+    return () => {
+      attachedImagesRef.current.forEach((image) => URL.revokeObjectURL(image.url));
+    };
+  }, []);
+
   useEffect(() => {
     if (!editId || hasLoadedEditRef.current || !existingEntry) return;
     hasLoadedEditRef.current = true;
@@ -100,24 +119,30 @@ export default function DiaryWriteForm() {
       title: existingEntry.title,
       content: existingEntry.content,
     });
-  }, [editId, existingEntry]);
 
-  // 첨부 이미지 상태는 "시간을 붙잡다" 모달(이 컴포넌트)이 살아있는 동안 유지됩니다.
-  // 이미지 첨부 모달은 열고 닫아도 이 상태를 그대로 두므로 첨부 내용이 사라지지 않습니다.
-  const [attachedImages, setAttachedImages] = useState<AttachedImage[]>([]);
-  const [selectedImageId, setSelectedImageId] = useState<number | null>(null);
-  const nextImageId = useRef(0);
-  const attachedImagesRef = useRef<AttachedImage[]>([]);
+    // 첨부 이미지도 복원합니다(저장된 data URL → File). 목록 화면에 보이던
+    // 순서(좌측부터)를 그대로 유지합니다.
+    let cancelled = false;
+    (async () => {
+      const restored = await Promise.all(
+        existingEntry.images.map(async (dataUrl, index) => {
+          const file = await storedImageToFile(dataUrl, `image-${index}.jpg`);
+          const image: AttachedImage = {
+            id: nextImageId.current++,
+            file,
+            url: URL.createObjectURL(file),
+            zoomLevel: 0,
+          };
+          return image;
+        })
+      );
+      if (!cancelled) setAttachedImages(restored);
+    })();
 
-  useEffect(() => {
-    attachedImagesRef.current = attachedImages;
-  }, [attachedImages]);
-
-  useEffect(() => {
     return () => {
-      attachedImagesRef.current.forEach((image) => URL.revokeObjectURL(image.url));
+      cancelled = true;
     };
-  }, []);
+  }, [editId, existingEntry]);
 
   const hasAttachment = attachedImages.length > 0;
   // 최초(또는 불러온 글의) 상태에서 조금이라도 값이 바뀌었는지 — 닫기 경고를 띄울지 여부에 씁니다.
@@ -147,10 +172,14 @@ export default function DiaryWriteForm() {
     createdAtRef.current = null;
   }
 
-  function buildEntryFromState(): DiaryEntry {
+  async function buildEntryFromState(): Promise<DiaryEntry> {
     if (!createdAtRef.current) {
       createdAtRef.current = new Date().toISOString();
     }
+    // 첨부 이미지를 저장용(리사이즈된 data URL)으로 인코딩합니다.
+    const images = await Promise.all(
+      attachedImages.map((image) => fileToStoredImage(image.file))
+    );
     return {
       id: entryId,
       date: formatLocalDate(date),
@@ -159,6 +188,7 @@ export default function DiaryWriteForm() {
       mood,
       weather,
       hasAttachment,
+      images,
       createdAt: createdAtRef.current,
     };
   }
@@ -170,14 +200,15 @@ export default function DiaryWriteForm() {
     if (saved) setSaved(false);
   }
 
-  function handleSaveClick() {
+  async function handleSaveClick() {
     if (content.trim() === "") {
       setDialog({ type: "empty-content" });
       return;
     }
     // 본문(글 내용)이 저장의 필수 조건이며, 날짜/기분/날씨/제목/첨부 이미지는
     // 함께 부가적으로 저장됩니다. "그날을 거닐다" 목록에 즉시 반영됩니다.
-    addSavedDiaryEntry(buildEntryFromState());
+    const entry = await buildEntryFromState();
+    addSavedDiaryEntry(entry);
     setSaved(true);
   }
 
