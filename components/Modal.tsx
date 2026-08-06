@@ -15,6 +15,11 @@ interface ModalProps {
   onClose?: () => void;
   /** false면 배경을 어둡게 덮지 않고, 다른 모달 위에 겹쳐 뜨는 창으로 렌더링합니다. */
   overlay?: boolean;
+  /** false면 최소화/최대화 버튼 없이 닫기 버튼만 표시합니다. */
+  showWindowControls?: boolean;
+  /** false면 헤더 우측 닫기(×) 버튼을 표시하지 않습니다. 하단에 별도 닫기 버튼이
+   * 있어 기능이 중복되는 경우 등에 사용합니다. */
+  showCloseButton?: boolean;
   /** 처음 뜰 때의 화면 중앙 기준 오프셋(px). 다른 모달과 겹치지 않게 살짝 띄우는 용도. */
   defaultOffset?: { x: number; y: number };
   children: ReactNode;
@@ -52,6 +57,8 @@ export default function Modal({
   closeHref,
   onClose,
   overlay = true,
+  showWindowControls = true,
+  showCloseButton = true,
   defaultOffset,
   children,
 }: ModalProps) {
@@ -147,30 +154,36 @@ export default function Modal({
             {title}
           </span>
           <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setIsMinimized(true)}
-              aria-label="최소화"
-              className={controlButtonClass}
-            >
-              <span className="block h-[2px] w-3 bg-current" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsMinimized(false)}
-              aria-label="최대화"
-              className={controlButtonClass}
-            >
-              <span className="block h-3 w-3 rounded-[2px] border border-current" />
-            </button>
-            <button
-              type="button"
-              onClick={handleClose}
-              aria-label="닫기"
-              className={`${controlButtonClass} text-lg`}
-            >
-              ×
-            </button>
+            {showWindowControls && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setIsMinimized(true)}
+                  aria-label="최소화"
+                  className={controlButtonClass}
+                >
+                  <span className="block h-[2px] w-3 bg-current" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsMinimized(false)}
+                  aria-label="최대화"
+                  className={controlButtonClass}
+                >
+                  <span className="block h-3 w-3 rounded-[2px] border border-current" />
+                </button>
+              </>
+            )}
+            {showCloseButton && (
+              <button
+                type="button"
+                onClick={handleClose}
+                aria-label="닫기"
+                className={`${controlButtonClass} text-lg`}
+              >
+                ×
+              </button>
+            )}
           </div>
         </header>
         {!isMinimized && (

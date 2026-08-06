@@ -57,7 +57,7 @@ export default function DataRestorePanel() {
         <button
           type="button"
           onClick={handleImportClick}
-          className="mt-1 self-start rounded-full bg-black px-4 py-1.5 text-xs text-white transition-opacity hover:opacity-90 sm:text-sm dark:bg-white dark:text-black"
+          className="mt-1 self-end rounded-full bg-black px-4 py-1.5 text-xs text-white transition-opacity hover:opacity-90 sm:text-sm dark:bg-white dark:text-black"
         >
           가져오기
         </button>
