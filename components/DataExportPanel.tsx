@@ -122,17 +122,17 @@ export default function DataExportPanel() {
             description="이미지를 제외한 텍스트 데이터만 백업합니다. 암호화된 일기는 내보내기 대상에서 제외됩니다."
             selected={format === "txt"}
             onSelect={() => setFormat("txt")}
-          />
+          >
+            <p className="pt-1 text-xs font-semibold text-black sm:text-sm dark:text-zinc-50">
+              파일 생성 옵션
+            </p>
+            <DataExportSplitOptions
+              value={splitOption}
+              onChange={setSplitOption}
+              disabled={format !== "txt"}
+            />
+          </DataExportFormatOption>
         </div>
-
-        <p className="pt-1 text-xs font-semibold text-black sm:text-sm dark:text-zinc-50">
-          파일 생성 옵션
-        </p>
-        <DataExportSplitOptions
-          value={splitOption}
-          onChange={setSplitOption}
-          disabled={format !== "txt"}
-        />
       </div>
 
       <DataExportDateRangeSection

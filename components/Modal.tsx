@@ -7,7 +7,7 @@ import { useMounted } from "@/lib/useMounted";
 
 interface ModalProps {
   title: string;
-  size?: "sm" | "lg";
+  size?: "sm" | "lg" | "xl";
   tall?: boolean;
   /** 지정하면 뷰포트 높이의 이 비율(vh)로 고정 높이를 씁니다. tall보다 우선합니다. */
   heightVh?: number;
@@ -28,6 +28,7 @@ interface ModalProps {
 const SIZE_CLASSES = {
   sm: "max-w-md",
   lg: "max-w-2xl",
+  xl: "max-w-4xl",
 } as const;
 
 const controlButtonClass =
