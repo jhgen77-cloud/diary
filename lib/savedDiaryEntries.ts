@@ -111,6 +111,13 @@ export function removeSavedDiaryEntry(id: string) {
   notify();
 }
 
+/** 로컬에 저장된 일기를 전부 지웁니다 ('기억의 소멸' — 데이터 초기화). */
+export function clearSavedDiaryEntries() {
+  if (typeof window === "undefined") return;
+  persist([]);
+  notify();
+}
+
 /** 로컬에 저장된 일기 목록을 구독합니다 (다른 탭에서의 변경도 반영됩니다). */
 export function useSavedDiaryEntries(): DiaryEntry[] {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
