@@ -6,7 +6,7 @@ export default function DataModal() {
     <Modal
       title="기억의 유실을 회복하다"
       size="xl"
-      heightVh={64}
+      heightVh={86}
       overlay={false}
       showWindowControls={false}
       showCloseButton={false}
