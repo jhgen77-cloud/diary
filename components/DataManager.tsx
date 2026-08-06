@@ -21,9 +21,18 @@ export default function DataManager() {
         <div className="flex min-h-0 flex-1 flex-col gap-3">
           <DataTabNav active={tab} onChange={setTab} />
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {tab === "restore" && <DataRestorePanel />}
-            {tab === "export" && <DataExportPanel />}
-            {tab === "reset" && <DataResetPanel />}
+            {/* 탭을 옮겨도 각 패널의 상태(선택된 파일 형식, 파일 생성 옵션 등)가
+               유지되도록 언마운트하지 않고, 비활성 탭은 display:none으로만 숨깁니다.
+               모달을 닫으면(DataManager 자체가 언마운트) 그때 비로소 초기화됩니다. */}
+            <div className={tab === "restore" ? "contents" : "hidden"}>
+              <DataRestorePanel />
+            </div>
+            <div className={tab === "export" ? "contents" : "hidden"}>
+              <DataExportPanel />
+            </div>
+            <div className={tab === "reset" ? "contents" : "hidden"}>
+              <DataResetPanel />
+            </div>
           </div>
         </div>
       </div>

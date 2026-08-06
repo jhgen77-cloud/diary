@@ -33,7 +33,7 @@ export default function DataExportPanel() {
   const entries = useSavedDiaryEntries();
 
   const [format, setFormat] = useState<ExportFormat>("zip");
-  const [splitOption, setSplitOption] = useState<TxtSplitOption>("single");
+  const [splitOption, setSplitOption] = useState<TxtSplitOption>("year");
   const [exportAll, setExportAll] = useState(false);
   const [startDate, setStartDate] = useState<DateValue>(() => {
     const earliest = [...entries].sort((a, b) => (a.date < b.date ? -1 : 1))[0];
@@ -123,14 +123,16 @@ export default function DataExportPanel() {
             selected={format === "txt"}
             onSelect={() => setFormat("txt")}
           >
-            <p className="pt-1 text-xs font-semibold text-black sm:text-sm dark:text-zinc-50">
-              파일 생성 옵션
-            </p>
-            <DataExportSplitOptions
-              value={splitOption}
-              onChange={setSplitOption}
-              disabled={format !== "txt"}
-            />
+            <div className="flex items-center gap-2 pt-1">
+              <p className="text-xs font-semibold text-black sm:text-sm dark:text-zinc-50">
+                파일 생성 옵션
+              </p>
+              <DataExportSplitOptions
+                value={splitOption}
+                onChange={setSplitOption}
+                disabled={format !== "txt"}
+              />
+            </div>
           </DataExportFormatOption>
         </div>
       </div>
