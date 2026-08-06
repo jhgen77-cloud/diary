@@ -11,7 +11,6 @@ interface DataExportDateRangeSectionProps {
   onToggleExportAll: () => void;
   deleteAfterExport: boolean;
   onToggleDeleteAfterExport: () => void;
-  yearOptions: number[];
   onExport: () => void;
   exporting: boolean;
 }
@@ -27,7 +26,6 @@ export default function DataExportDateRangeSection({
   onToggleExportAll,
   deleteAfterExport,
   onToggleDeleteAfterExport,
-  yearOptions,
   onExport,
   exporting,
 }: DataExportDateRangeSectionProps) {
@@ -39,12 +37,11 @@ export default function DataExportDateRangeSection({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <div className="flex flex-nowrap items-center justify-between gap-2">
+          <div className="flex flex-nowrap items-center gap-6">
             <DataExportDateField
               label="시작 일자"
               value={startDate}
               onChange={onChangeStart}
-              yearOptions={yearOptions}
               disabled={exportAll}
             />
             <DataCheckboxOption
@@ -57,7 +54,6 @@ export default function DataExportDateRangeSection({
             label="종료 일자"
             value={endDate}
             onChange={onChangeEnd}
-            yearOptions={yearOptions}
             disabled={exportAll}
           />
           <DataCheckboxOption

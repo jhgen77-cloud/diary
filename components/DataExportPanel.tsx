@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { StaticImageData } from "next/image";
 import NoticeDialog from "@/components/NoticeDialog";
 import DataExportFormatOption from "@/components/DataExportFormatOption";
@@ -13,15 +13,12 @@ import { removeSavedDiaryEntry, useSavedDiaryEntries } from "@/lib/savedDiaryEnt
 import {
   type DateValue,
   type ExportFormat,
+  dateToDateValue,
   exportEntriesAsTxt,
   exportEntriesAsZip,
   filterEntriesByDateRange,
   isDirectoryPickerSupported,
 } from "@/lib/exportDiaryEntries";
-
-function toDateValue(date: Date): DateValue {
-  return { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() };
-}
 
 interface NoticeState {
   icon: StaticImageData;
@@ -37,20 +34,14 @@ export default function DataExportPanel() {
   const [exportAll, setExportAll] = useState(false);
   const [startDate, setStartDate] = useState<DateValue>(() => {
     const earliest = [...entries].sort((a, b) => (a.date < b.date ? -1 : 1))[0];
-    return earliest ? toDateValue(new Date(`${earliest.date}T00:00:00`)) : toDateValue(new Date());
+    return earliest
+      ? dateToDateValue(new Date(`${earliest.date}T00:00:00`))
+      : dateToDateValue(new Date());
   });
-  const [endDate, setEndDate] = useState<DateValue>(() => toDateValue(new Date()));
+  const [endDate, setEndDate] = useState<DateValue>(() => dateToDateValue(new Date()));
   const [deleteAfterExport, setDeleteAfterExport] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [notice, setNotice] = useState<NoticeState | null>(null);
-
-  // 저장된 일기가 없는 해도 최소 올해는 고를 수 있게 현재 연도를 항상 포함합니다.
-  const yearOptions = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const years = new Set(entries.map((entry) => Number(entry.date.slice(0, 4))));
-    years.add(currentYear);
-    return Array.from(years).sort((a, b) => a - b);
-  }, [entries]);
 
   async function handleExport() {
     if (entries.length === 0) {
@@ -148,7 +139,6 @@ export default function DataExportPanel() {
         onToggleExportAll={() => setExportAll((prev) => !prev)}
         deleteAfterExport={deleteAfterExport}
         onToggleDeleteAfterExport={() => setDeleteAfterExport((prev) => !prev)}
-        yearOptions={yearOptions}
         onExport={handleExport}
         exporting={isExporting}
       />

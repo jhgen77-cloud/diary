@@ -20,6 +20,16 @@ export function dateValueToString({ year, month, day }: DateValue) {
   return `${year}-${mm}-${dd}`;
 }
 
+/** DateValue(연/월/일 각각 숫자) <-> Date 상호 변환. MiniCalendarPicker 등 Date를
+ * 다루는 컴포넌트와 DateValue 기반 상태를 잇는 용도로 씁니다. */
+export function dateValueToDate({ year, month, day }: DateValue): Date {
+  return new Date(year, month - 1, day);
+}
+
+export function dateToDateValue(date: Date): DateValue {
+  return { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() };
+}
+
 /** 시작~종료 일자(순서가 뒤바뀌어 있어도) 범위에 포함되는 일기만 남깁니다. */
 export function filterEntriesByDateRange(
   entries: DiaryEntry[],

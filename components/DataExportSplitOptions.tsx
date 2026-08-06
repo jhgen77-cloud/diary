@@ -45,6 +45,10 @@ export default function DataExportSplitOptions({
   const [order, setOrder] = useState<TxtSplitOption[]>(DEFAULT_ORDER);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // TXT 형식이 아니게 되어 비활성화되면 펼쳐져 있던 선택란도 닫힌 것으로 취급합니다.
+  // (state를 effect로 되돌리는 대신, 렌더링 시점에 바로 파생시킵니다.)
+  const open = isOpen && !disabled;
+
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {
       if (!containerRef.current?.contains(event.target as Node)) {
@@ -54,11 +58,6 @@ export default function DataExportSplitOptions({
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, []);
-
-  // TXT 형식이 아니게 되어 비활성화되면 펼쳐진 선택란도 함께 닫습니다.
-  useEffect(() => {
-    if (disabled) setIsOpen(false);
-  }, [disabled]);
 
   return (
     <div
@@ -71,7 +70,7 @@ export default function DataExportSplitOptions({
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-haspopup="true"
-        aria-expanded={isOpen}
+        aria-expanded={open}
         disabled={disabled}
         className="flex w-44 items-center justify-between gap-2 rounded-full border border-black/10 bg-white/60 px-3 py-1.5 text-left transition-colors hover:bg-black/[.06] sm:w-52 dark:border-white/15 dark:bg-white/[.04] dark:hover:bg-white/[.08]"
       >
@@ -80,13 +79,13 @@ export default function DataExportSplitOptions({
         </span>
         <span
           className={`shrink-0 text-[0.6rem] text-black/50 transition-transform sm:text-xs dark:text-zinc-400 ${
-            isOpen ? "rotate-180" : ""
+            open ? "rotate-180" : ""
           }`}
         >
           ▾
         </span>
       </button>
-      {isOpen && (
+      {open && (
         <div
           aria-label="파일 생성 옵션"
           className="absolute top-full left-0 z-10 mt-1 flex w-44 flex-col rounded-xl border border-black/10 bg-zinc-50 p-1 shadow-lg sm:w-52 dark:border-white/15 dark:bg-zinc-900"
