@@ -34,7 +34,7 @@ const toolButtonClass =
   "group relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--hover)] active:scale-90 disabled:pointer-events-none disabled:opacity-30 sm:h-9 sm:w-9";
 
 const tooltipClass =
-  "pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 rounded-md bg-[var(--text)] px-1.5 py-0.5 text-[0.65rem] whitespace-nowrap text-white opacity-0 transition-opacity group-hover:opacity-100";
+  "pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 text-[0.65rem] whitespace-nowrap text-[var(--text)] opacity-0 transition-opacity group-hover:opacity-100";
 
 export default function ImageAttachModal({
   onClose,

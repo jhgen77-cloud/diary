@@ -28,7 +28,7 @@ export default function IconOption({
       <span className="relative aspect-square h-full w-full p-1">
         <Image src={icon} alt={label} fill className="object-contain" />
       </span>
-      <span className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 rounded-md bg-[var(--text)] px-1.5 py-0.5 text-[0.65rem] whitespace-nowrap text-white opacity-0 transition-opacity group-hover:opacity-100">
+      <span className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 text-[0.65rem] whitespace-nowrap text-[var(--text)] opacity-0 transition-opacity group-hover:opacity-100">
         {label}
       </span>
     </button>
