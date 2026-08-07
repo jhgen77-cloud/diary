@@ -9,7 +9,7 @@ import DiaryWriteForm from "@/components/DiaryWriteForm";
 // 같은 Modal 뼈대를 fallback으로 띄워 그 틈에도 모달이 계속 떠 있게 합니다.
 export default function DiaryWriteModal() {
   return (
-    <Suspense fallback={<Modal title="시간을 붙잡다" size="lg" tall>{null}</Modal>}>
+    <Suspense fallback={<Modal title="시간을 붙잡다" size="xl" tall>{null}</Modal>}>
       <DiaryWriteForm />
     </Suspense>
   );

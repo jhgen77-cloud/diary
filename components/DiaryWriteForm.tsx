@@ -324,7 +324,7 @@ export default function DiaryWriteForm() {
 
   return (
     <>
-      <Modal title="시간을 붙잡다" size="lg" tall onClose={handleCloseAttempt}>
+      <Modal title="시간을 붙잡다" size="xl" tall onClose={handleCloseAttempt}>
         <div className="flex min-h-0 flex-1 flex-col gap-2">
           <DiaryWriteToolbar
             onSave={handleSaveClick}

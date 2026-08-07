@@ -1,5 +1,6 @@
 import Image, { type StaticImageData } from "next/image";
 import Link from "next/link";
+import Tooltip from "@/components/Tooltip";
 
 interface DiaryMenuItemProps {
   href: string;
@@ -29,9 +30,13 @@ export default function DiaryMenuItem({
             className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
         </div>
-        <span className="text-base leading-snug font-medium text-black sm:text-xl md:text-2xl dark:text-zinc-50">
-          {title}
-        </span>
+        {/* 툴팁 위치가 텍스트 자체를 기준으로 잡히도록, 카드 전체가 아니라 제목
+           텍스트만 Tooltip으로 감쌉니다(Header의 "기억" 툴팁과 같은 방식). */}
+        <Tooltip label={imageAlt}>
+          <span className="text-base leading-snug font-medium text-black sm:text-xl md:text-2xl dark:text-zinc-50">
+            {title}
+          </span>
+        </Tooltip>
       </Link>
     </li>
   );

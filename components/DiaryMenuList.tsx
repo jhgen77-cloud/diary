@@ -14,7 +14,7 @@ interface DiaryMenuListProps {
 
 export default function DiaryMenuList({ items }: DiaryMenuListProps) {
   return (
-    <ul className="flex h-full w-full max-w-3xl flex-col gap-3 sm:gap-4">
+    <ul className="flex h-full w-full max-w-[38rem] flex-col gap-3 sm:gap-4">
       {items.map((item) => (
         <DiaryMenuItem key={item.href} {...item} />
       ))}

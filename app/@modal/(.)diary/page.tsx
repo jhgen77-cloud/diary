@@ -10,7 +10,7 @@ export default async function DiaryModal({
   const { q } = await searchParams;
 
   return (
-    <Modal title="그날을 거닐다" size="lg" closeHref="/">
+    <Modal title="그날을 거닐다" size="xl" closeHref="/">
       <DiaryBrowser entries={mockDiaryEntries} initialQuery={q} />
     </Modal>
   );

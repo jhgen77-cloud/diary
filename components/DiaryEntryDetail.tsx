@@ -77,7 +77,7 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
 
   return (
     <>
-      <Modal title="그날을 거닐다" size="lg" tall>
+      <Modal title="그날을 거닐다" size="xl" tall>
         <div className="flex min-h-0 flex-1 flex-col gap-2">
           <div className="flex shrink-0 items-start justify-between gap-3 rounded-2xl border border-black/[.06] p-2 sm:p-2.5 dark:border-white/[.08]">
             {/* 좌측: 기분/날씨 아이콘 → 제목, 우측: 삭제/수정 아이콘 → 날짜 — 같은
