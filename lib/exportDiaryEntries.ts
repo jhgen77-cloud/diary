@@ -130,7 +130,11 @@ function buildDiaryXml(entries: DiaryEntry[]) {
       return [
         `  <entry id="${escapeXml(entry.id)}" date="${entry.date}" mood="${entry.mood}" weather="${entry.weather ?? ""}" createdAt="${entry.createdAt}">`,
         `    <title>${escapeXml(entry.title)}</title>`,
-        `    <content><![CDATA[${entry.content}]]></content>`,
+        // CDATA 대신 title과 같은 방식(escapeXml)으로 통일했습니다. 일부
+        // 브라우저의 기본 XML 뷰어는 CDATA 구간을 접어서(펼치기 전까진 안 보이게)
+        // 보여줘, 압축 풀고 xml을 열어봤을 때 본문이 없는 것처럼 보이는
+        // 문제가 있었습니다.
+        `    <content>${escapeXml(entry.content)}</content>`,
         images ? `    <images>\n${images}\n    </images>` : "    <images/>",
         `  </entry>`,
       ].join("\n");
