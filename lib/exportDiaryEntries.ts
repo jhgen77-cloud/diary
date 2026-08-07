@@ -6,7 +6,9 @@ import { MOOD_LABELS, WEATHER_LABELS } from "@/lib/diaryIcons";
  * 하위 컴포넌트)에서 상태만 관리하고, 실제 파일 생성/쓰기는 이 파일에 모아둡니다. */
 
 export type ExportFormat = "zip" | "txt";
-export type TxtSplitOption = "year" | "single" | "year-month" | "date";
+// ZIP/TXT 두 형식 모두에서 쓰는 '파일 생성 옵션'. 형식과 무관하게 선택지가 같아
+// (하나의 파일 / 연도별 / 연,월별 / 날짜별) 이름도 형식에 매이지 않게 지었습니다.
+export type ExportSplitOption = "year" | "single" | "year-month" | "date";
 
 export interface DateValue {
   year: number;
@@ -62,24 +64,27 @@ function formatEntryText(entry: DiaryEntry) {
   ].join("\n");
 }
 
-interface TxtFile {
-  filename: string;
-  content: string;
+interface ExportGroup {
+  /** "single"일 때는 빈 문자열. 그 외에는 연도("2026") / 연,월("2026-08") /
+   * 날짜("2026-08-07") 문자열 — 파일명을 짓는 쪽에서 형식에 맞게 사용합니다. */
+  key: string;
+  entries: DiaryEntry[];
 }
 
-function groupEntriesForTxt(entries: DiaryEntry[], splitOption: TxtSplitOption): TxtFile[] {
+/** splitOption에 따라 entries를 파일 단위 그룹으로 묶습니다. ZIP/TXT 내보내기가
+ * 공유하는 '파일 생성 옵션'의 핵심 로직이며, 실제 파일명/내용 생성은 각 형식
+ * 쪽(groupEntriesForTxt/exportEntriesAsZip)에서 이어서 담당합니다. */
+function groupEntriesForExport(
+  entries: DiaryEntry[],
+  splitOption: ExportSplitOption
+): ExportGroup[] {
   const sorted = sortByDateAsc(entries);
 
   if (splitOption === "single") {
-    return [
-      { filename: "diary-export.txt", content: sorted.map(formatEntryText).join("\n\n") },
-    ];
+    return [{ key: "", entries: sorted }];
   }
   if (splitOption === "date") {
-    return sorted.map((entry) => ({
-      filename: `${entry.date}.txt`,
-      content: formatEntryText(entry),
-    }));
+    return sorted.map((entry) => ({ key: entry.date, entries: [entry] }));
   }
 
   // "year" | "year-month" — 연도(또는 연,월) 단위로 묶습니다.
@@ -91,9 +96,23 @@ function groupEntriesForTxt(entries: DiaryEntry[], splitOption: TxtSplitOption):
     if (group) group.push(entry);
     else groups.set(key, [entry]);
   }
-  return Array.from(groups.entries()).map(([key, group]) => ({
-    filename: `diary-${key}.txt`,
-    content: group.map(formatEntryText).join("\n\n"),
+  return Array.from(groups.entries()).map(([key, group]) => ({ key, entries: group }));
+}
+
+interface TxtFile {
+  filename: string;
+  content: string;
+}
+
+function groupEntriesForTxt(entries: DiaryEntry[], splitOption: ExportSplitOption): TxtFile[] {
+  return groupEntriesForExport(entries, splitOption).map((group) => ({
+    filename:
+      splitOption === "single"
+        ? "diary-export.txt"
+        : splitOption === "date"
+          ? `${group.key}.txt`
+          : `diary-${group.key}.txt`,
+    content: group.entries.map(formatEntryText).join("\n\n"),
   }));
 }
 
@@ -102,7 +121,7 @@ function groupEntriesForTxt(entries: DiaryEntry[], splitOption: TxtSplitOption):
 export async function exportEntriesAsTxt(
   dirHandle: FileSystemDirectoryHandle,
   entries: DiaryEntry[],
-  splitOption: TxtSplitOption
+  splitOption: ExportSplitOption
 ) {
   const files = groupEntriesForTxt(entries, splitOption);
   for (const file of files) {
@@ -121,6 +140,31 @@ function escapeXml(value: string) {
     .replace(/"/g, "&quot;");
 }
 
+// XML 1.0 명세는 대부분의 제어 문자를 허용하지 않습니다(탭/개행/캐리지리턴은 예외).
+// 정규식에 코드 포인트 이스케이프를 직접 쓰면 편집 도구를 거치며 글자가 깨지는
+// 문제가 있어, 코드 포인트 숫자를 직접 비교하는 방식으로 우회했습니다.
+function isValidXmlCodePoint(codePoint: number) {
+  return (
+    codePoint === 0x09 || // 탭
+    codePoint === 0x0a || // 개행
+    codePoint === 0x0d || // 캐리지리턴
+    (codePoint >= 0x20 && codePoint <= 0xd7ff) ||
+    (codePoint >= 0xe000 && codePoint <= 0xfffd) ||
+    (codePoint >= 0x10000 && codePoint <= 0x10ffff)
+  );
+}
+
+// 다른 프로그램에서 복사해 붙여넣은 본문에 위 범위를 벗어난 제어 문자(예: NUL,
+// BEL, 수직 탭)가 섞여 있으면, escapeXml로는 걸러지지 않아 XML 자체가 깨지고,
+// 가져오기 때 "파일을 가져오는 중 오류가 발생했습니다" / "가져올 일기를 찾지
+// 못했습니다"로 이어지는 문제가 있었습니다(실제로 재현해 확인함). 그런 문자를
+// 내보내기 전에 미리 제거합니다.
+export function stripInvalidXmlChars(value: string) {
+  return Array.from(value)
+    .filter((char) => isValidXmlCodePoint(char.codePointAt(0) ?? 0))
+    .join("");
+}
+
 function buildDiaryXml(entries: DiaryEntry[]) {
   const items = entries
     .map((entry) => {
@@ -129,12 +173,12 @@ function buildDiaryXml(entries: DiaryEntry[]) {
         .join("\n");
       return [
         `  <entry id="${escapeXml(entry.id)}" date="${entry.date}" mood="${entry.mood}" weather="${entry.weather ?? ""}" createdAt="${entry.createdAt}">`,
-        `    <title>${escapeXml(entry.title)}</title>`,
+        `    <title>${escapeXml(stripInvalidXmlChars(entry.title))}</title>`,
         // CDATA 대신 title과 같은 방식(escapeXml)으로 통일했습니다. 일부
         // 브라우저의 기본 XML 뷰어는 CDATA 구간을 접어서(펼치기 전까진 안 보이게)
         // 보여줘, 압축 풀고 xml을 열어봤을 때 본문이 없는 것처럼 보이는
         // 문제가 있었습니다.
-        `    <content>${escapeXml(entry.content)}</content>`,
+        `    <content>${escapeXml(stripInvalidXmlChars(entry.content))}</content>`,
         images ? `    <images>\n${images}\n    </images>` : "    <images/>",
         `  </entry>`,
       ].join("\n");
@@ -148,23 +192,33 @@ async function dataUrlToBlob(dataUrl: string) {
   return response.blob();
 }
 
+// splitOption이 "single"일 때만 쓰는, 내보낸 시각이 담긴 파일명(같은 날 여러 번
+// 내보내도 서로 덮어쓰지 않도록). 그 외 옵션은 groupEntriesForZip에서 그룹 키로
+// 이름을 짓습니다(TXT 쪽 diary-<key>.txt와 같은 방식).
 function buildZipFilename() {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
   return `diary-backup-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}.zip`;
 }
 
-/** ZIP 형식으로 내보냅니다. 일기 메타데이터/본문은 diary.xml에, 첨부 이미지는
- * images/ 폴더에 담아 [가져오기]로 다시 복원할 수 있는 형태로 묶습니다. */
-export async function exportEntriesAsZip(
-  dirHandle: FileSystemDirectoryHandle,
-  entries: DiaryEntry[]
-) {
+interface ZipFile {
+  filename: string;
+  entries: DiaryEntry[];
+}
+
+function groupEntriesForZip(entries: DiaryEntry[], splitOption: ExportSplitOption): ZipFile[] {
+  return groupEntriesForExport(entries, splitOption).map((group) => ({
+    filename: splitOption === "single" ? buildZipFilename() : `diary-backup-${group.key}.zip`,
+    entries: group.entries,
+  }));
+}
+
+async function writeZipFile(dirHandle: FileSystemDirectoryHandle, file: ZipFile) {
   const zip = new JSZip();
-  zip.file("diary.xml", buildDiaryXml(entries));
+  zip.file("diary.xml", buildDiaryXml(file.entries));
 
   const imagesFolder = zip.folder("images");
-  for (const entry of entries) {
+  for (const entry of file.entries) {
     for (let index = 0; index < entry.images.length; index += 1) {
       const blob = await dataUrlToBlob(entry.images[index]);
       imagesFolder?.file(`${entry.id}-${index}.jpg`, blob);
@@ -172,8 +226,23 @@ export async function exportEntriesAsZip(
   }
 
   const blob = await zip.generateAsync({ type: "blob" });
-  const fileHandle = await dirHandle.getFileHandle(buildZipFilename(), { create: true });
+  const fileHandle = await dirHandle.getFileHandle(file.filename, { create: true });
   const writable = await fileHandle.createWritable();
   await writable.write(blob);
   await writable.close();
+}
+
+/** ZIP 형식으로 내보냅니다. 일기 메타데이터/본문은 diary.xml에, 첨부 이미지는
+ * images/ 폴더에 담아 [가져오기]로 다시 복원할 수 있는 형태로 묶습니다.
+ * splitOption에 따라 TXT와 동일하게 하나의 파일로 묶거나 연도/연,월/날짜별로
+ * 나눠 여러 개의 zip 파일을 생성합니다. */
+export async function exportEntriesAsZip(
+  dirHandle: FileSystemDirectoryHandle,
+  entries: DiaryEntry[],
+  splitOption: ExportSplitOption
+) {
+  const files = groupEntriesForZip(entries, splitOption);
+  for (const file of files) {
+    await writeZipFile(dirHandle, file);
+  }
 }

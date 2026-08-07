@@ -3,14 +3,13 @@
 import { useRef, useState } from "react";
 import DataOptionRadio from "@/components/DataOptionRadio";
 import NoticeDialog from "@/components/NoticeDialog";
-import { letterIIcon, questionMarkIcon, warningSignIcon } from "@/lib/diaryIcons";
+import { letterIIcon, warningSignIcon } from "@/lib/diaryIcons";
 import { setSavedDiaryEntries, useSavedDiaryEntries } from "@/lib/savedDiaryEntries";
 import {
   mergeImportedEntries,
-  readImportFile,
+  readImportFiles,
   type ImportOption,
 } from "@/lib/importDiaryEntries";
-import type { DiaryEntry } from "@/lib/mockDiaryEntries";
 
 interface ImportOptionItem {
   key: ImportOption;
@@ -19,26 +18,25 @@ interface ImportOptionItem {
 
 const IMPORT_OPTIONS: ImportOptionItem[] = [
   { key: "skip", label: "가져오기 하지 않고 건너뜀" },
-  { key: "overwrite-newer", label: "최종 수정 일시가 최근 날짜인 일기로 덮어 쓰기" },
   { key: "overwrite-source", label: "가져오기 대상 파일에 존재하는 일기의 내용으로 덮어쓰기" },
 ];
 
 type DialogState =
-  | "none"
-  | "conflictToast" // skip: 같은 날짜가 있어 건너뛰었음을 잠깐 알림
-  | "confirmOverwrite" // overwrite-newer: 덮어쓰기 전 확인
-  | "done"
-  | "noEntries"
-  | "error";
+  | { type: "none" }
+  | { type: "conflictToast" } // skip: 같은 날짜가 있어 건너뛰었음을 잠깐 알림
+  | { type: "done" }
+  | { type: "noEntries" }
+  | { type: "storageFull" } // 저장 공간 부족으로 반영하지 못하고 중단함
+  | { type: "error"; detail: string };
 
 /** 기억의 귀환 — 백업된 데이터(ZIP/XML) 가져오기. 같은 날짜의 일기가 이미 저장돼
- * 있으면, 선택한 옵션에 따라 건너뛰거나(skip) 덮어씁니다(overwrite-*). */
+ * 있으면, 선택한 옵션에 따라 건너뛰거나(skip) 가져오기 대상 파일의 내용으로
+ * 덮어씁니다(overwrite-source — 파일이 나중에 다시 바뀌어도 다시 가져오면 그때마다
+ * 최신 내용으로 덮어써집니다). */
 export default function DataRestorePanel() {
   const entries = useSavedDiaryEntries();
   const [option, setOption] = useState<ImportOption>("skip");
-  const [dialog, setDialog] = useState<DialogState>("none");
-  // overwrite-newer는 확인을 받기 전까지 실제로 저장하지 않고 대기시켜 둡니다.
-  const pendingNextRef = useRef<DiaryEntry[] | null>(null);
+  const [dialog, setDialog] = useState<DialogState>({ type: "none" });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleImportClick() {
@@ -46,48 +44,40 @@ export default function DataRestorePanel() {
   }
 
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = ""; // 같은 파일을 다시 선택해도 onChange가 다시 일어나게
-    if (!file) return;
+    // 드래그로 여러 개 선택하거나 '모두 선택'해도 files에 전부 담겨 들어옵니다.
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = ""; // 같은 파일(들)을 다시 선택해도 onChange가 다시 일어나게
+    if (files.length === 0) return;
 
     try {
-      const imported = await readImportFile(file);
+      const imported = await readImportFiles(files);
       if (imported.length === 0) {
-        setDialog("noEntries");
+        setDialog({ type: "noEntries" });
         return;
       }
 
       const { next, hasConflict } = mergeImportedEntries(entries, imported, option);
-
-      if (option === "overwrite-newer" && hasConflict) {
-        pendingNextRef.current = next;
-        setDialog("confirmOverwrite");
+      const saved = setSavedDiaryEntries(next);
+      if (!saved) {
+        // 저장 공간이 부족해 반영하지 못했습니다 — 기존 데이터는 그대로 유지되며,
+        // 가져오기는 진행되지 않은 것으로 간주합니다.
+        setDialog({ type: "storageFull" });
         return;
       }
-
-      setSavedDiaryEntries(next);
-      setDialog(option === "skip" && hasConflict ? "conflictToast" : "done");
+      setDialog({ type: option === "skip" && hasConflict ? "conflictToast" : "done" });
     } catch (error) {
+      // 실패 원인을 화면에도 그대로 보여줘, "왜" 실패했는지 바로 확인할 수 있게 합니다.
       console.error("가져오기 실패", error);
-      setDialog("error");
+      const detail = error instanceof Error ? error.message : String(error);
+      setDialog({ type: "error", detail });
     }
-  }
-
-  function handleConfirmOverwrite() {
-    if (pendingNextRef.current) setSavedDiaryEntries(pendingNextRef.current);
-    pendingNextRef.current = null;
-    setDialog("done");
-  }
-
-  function handleCancelOverwrite() {
-    pendingNextRef.current = null;
-    setDialog("none");
   }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <p className="text-xs text-black/70 sm:text-sm dark:text-zinc-300">
-        ZIP 및 XML 파일로 백업한 일기로부터 데이터를 가져와서 저장합니다.
+        ZIP 및 XML 파일로 백업한 일기로부터 데이터를 가져와서 저장합니다. 파일
+        선택창에서 여러 개의 파일을 드래그하거나 모두 선택하면 한 번에 가져옵니다.
       </p>
 
       <div className="relative flex flex-col gap-2 rounded-2xl border border-black/[.06] p-3 pt-4 dark:border-white/[.08]">
@@ -118,50 +108,48 @@ export default function DataRestorePanel() {
           ref={fileInputRef}
           type="file"
           accept=".zip,.xml"
+          multiple
           className="hidden"
           onChange={handleFileChange}
         />
       </div>
 
-      {dialog === "conflictToast" && (
+      {dialog.type === "conflictToast" && (
         <NoticeDialog
           icon={letterIIcon}
           message="같은 날짜의 일기가 존재합니다."
-          onConfirm={() => setDialog("none")}
+          onConfirm={() => setDialog({ type: "none" })}
           autoDismissMs={1800}
         />
       )}
-      {dialog === "confirmOverwrite" && (
-        <NoticeDialog
-          icon={questionMarkIcon}
-          message="내용을 덮어 쓰기 할까요?"
-          confirmLabel="확인"
-          onConfirm={handleConfirmOverwrite}
-          cancelLabel="취소"
-          onCancel={handleCancelOverwrite}
-          confirmFirst
-        />
-      )}
-      {dialog === "done" && (
+      {dialog.type === "done" && (
         <NoticeDialog
           icon={letterIIcon}
           message="가져오기를 완료했습니다."
-          onConfirm={() => setDialog("none")}
+          onConfirm={() => setDialog({ type: "none" })}
         />
       )}
-      {dialog === "noEntries" && (
+      {dialog.type === "noEntries" && (
         <NoticeDialog
           icon={letterIIcon}
           message="가져올 일기를 찾지 못했습니다."
-          onConfirm={() => setDialog("none")}
+          onConfirm={() => setDialog({ type: "none" })}
           wide
         />
       )}
-      {dialog === "error" && (
+      {dialog.type === "storageFull" && (
         <NoticeDialog
           icon={warningSignIcon}
-          message="파일을 가져오는 중 오류가 발생했습니다."
-          onConfirm={() => setDialog("none")}
+          message={"저장 공간이 부족하여 가져오기를 진행할 수 없습니다.\n기존 데이터는 변경되지 않았습니다."}
+          onConfirm={() => setDialog({ type: "none" })}
+          wide
+        />
+      )}
+      {dialog.type === "error" && (
+        <NoticeDialog
+          icon={warningSignIcon}
+          message={`파일을 가져오는 중 오류가 발생했습니다.\n${dialog.detail}`}
+          onConfirm={() => setDialog({ type: "none" })}
           wide
         />
       )}

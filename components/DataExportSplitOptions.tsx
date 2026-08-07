@@ -3,10 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import DataOptionRadio from "@/components/DataOptionRadio";
 
-export type TxtSplitOption = "year" | "single" | "year-month" | "date";
+export type ExportSplitOption = "year" | "single" | "year-month" | "date";
 
 interface SplitOption {
-  key: TxtSplitOption;
+  key: ExportSplitOption;
   label: string;
 }
 
@@ -20,20 +20,23 @@ const SPLIT_OPTIONS: SplitOption[] = [
 
 const SPLIT_LABELS = Object.fromEntries(
   SPLIT_OPTIONS.map((option) => [option.key, option.label])
-) as Record<TxtSplitOption, string>;
+) as Record<ExportSplitOption, string>;
 
-const DEFAULT_ORDER: TxtSplitOption[] = SPLIT_OPTIONS.map((option) => option.key);
+const DEFAULT_ORDER: ExportSplitOption[] = SPLIT_OPTIONS.map((option) => option.key);
 
 interface DataExportSplitOptionsProps {
-  value: TxtSplitOption;
-  onChange: (value: TxtSplitOption) => void;
-  /** TXT 파일을 선택했을 때만 활성화되고, 그 외에는 흐리게 비활성화됩니다. */
+  value: ExportSplitOption;
+  onChange: (value: ExportSplitOption) => void;
+  /** 이 컴포넌트가 속한 파일 형식(ZIP/TXT)이 현재 선택돼 있을 때만 활성화되고,
+   * 그 외에는 흐리게 비활성화됩니다. */
   disabled?: boolean;
 }
 
-/** '파일 생성 옵션' 선택란. 평소에는 닫힌 채 현재 선택된 옵션 텍스트만 보여주다가,
- * 클릭하면 4개 옵션을 top-down 방식으로 펼쳐서 고를 수 있습니다. DiaryWeatherField의
- * 펼침 버튼(▾) + 바깥 클릭 시 닫히는 패널 패턴을 그대로 따릅니다. */
+/** '파일 생성 옵션' 선택란. ZIP/TXT 두 형식 모두 하나의 파일로 묶을지, 연도/연,월/
+ * 날짜별로 나눌지를 이 컴포넌트로 고릅니다(형식마다 하나씩, 총 두 곳에서 재사용).
+ * 평소에는 닫힌 채 현재 선택된 옵션 텍스트만 보여주다가, 클릭하면 4개 옵션을
+ * top-down 방식으로 펼쳐서 고를 수 있습니다. DiaryWeatherField의 펼침 버튼(▾) +
+ * 바깥 클릭 시 닫히는 패널 패턴을 그대로 따릅니다. */
 export default function DataExportSplitOptions({
   value,
   onChange,
@@ -42,11 +45,11 @@ export default function DataExportSplitOptions({
   const [isOpen, setIsOpen] = useState(false);
   // 옵션을 고를 때마다 해당 옵션이 목록 첫 위치로 올라가고, 모달을 닫아 이 컴포넌트가
   // 다시 마운트되기 전까지는 그 순서가 유지됩니다.
-  const [order, setOrder] = useState<TxtSplitOption[]>(DEFAULT_ORDER);
+  const [order, setOrder] = useState<ExportSplitOption[]>(DEFAULT_ORDER);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // TXT 형식이 아니게 되어 비활성화되면 펼쳐져 있던 선택란도 닫힌 것으로 취급합니다.
-  // (state를 effect로 되돌리는 대신, 렌더링 시점에 바로 파생시킵니다.)
+  // 소속된 형식이 선택되지 않아 비활성화되면 펼쳐져 있던 선택란도 닫힌 것으로
+  // 취급합니다. (state를 effect로 되돌리는 대신, 렌더링 시점에 바로 파생시킵니다.)
   const open = isOpen && !disabled;
 
   useEffect(() => {

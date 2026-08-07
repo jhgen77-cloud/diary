@@ -5,7 +5,7 @@ import type { StaticImageData } from "next/image";
 import NoticeDialog from "@/components/NoticeDialog";
 import DataExportFormatOption from "@/components/DataExportFormatOption";
 import DataExportSplitOptions, {
-  type TxtSplitOption,
+  type ExportSplitOption,
 } from "@/components/DataExportSplitOptions";
 import DataExportDateRangeSection from "@/components/DataExportDateRangeSection";
 import { letterIIcon, warningSignIcon } from "@/lib/diaryIcons";
@@ -30,7 +30,11 @@ export default function DataExportPanel() {
   const entries = useSavedDiaryEntries();
 
   const [format, setFormat] = useState<ExportFormat>("zip");
-  const [splitOption, setSplitOption] = useState<TxtSplitOption>("year");
+  // ZIP/TXT 각자 '파일 생성 옵션'을 따로 기억합니다 — 형식을 바꿔도 이전에 고른
+  // 분할 방식이 그대로 남아 있도록(TXT 옵션과 동일한 선택지를 ZIP에도 그대로
+  // 제공하되, 상태 자체는 서로 독립적으로 둡니다).
+  const [zipSplitOption, setZipSplitOption] = useState<ExportSplitOption>("year");
+  const [txtSplitOption, setTxtSplitOption] = useState<ExportSplitOption>("year");
   const [exportAll, setExportAll] = useState(false);
   const [startDate, setStartDate] = useState<DateValue>(() => {
     const earliest = [...entries].sort((a, b) => (a.date < b.date ? -1 : 1))[0];
@@ -75,9 +79,9 @@ export default function DataExportPanel() {
     setIsExporting(true);
     try {
       if (format === "zip") {
-        await exportEntriesAsZip(dirHandle, targets);
+        await exportEntriesAsZip(dirHandle, targets, zipSplitOption);
       } else {
-        await exportEntriesAsTxt(dirHandle, targets, splitOption);
+        await exportEntriesAsTxt(dirHandle, targets, txtSplitOption);
       }
       if (deleteAfterExport) {
         targets.forEach((entry) => removeSavedDiaryEntry(entry.id));
@@ -109,7 +113,18 @@ export default function DataExportPanel() {
             description="이미지를 포함한 전체 내용을 내보내기 합니다. 나중에 [가져오기]를 통해서 다시 복원할 수 있습니다."
             selected={format === "zip"}
             onSelect={() => setFormat("zip")}
-          />
+          >
+            <div className="flex items-center gap-2 pt-1">
+              <p className="text-xs font-semibold text-black sm:text-sm dark:text-zinc-50">
+                파일 생성 옵션
+              </p>
+              <DataExportSplitOptions
+                value={zipSplitOption}
+                onChange={setZipSplitOption}
+                disabled={format !== "zip"}
+              />
+            </div>
+          </DataExportFormatOption>
           <DataExportFormatOption
             label="TXT 파일"
             description="이미지를 제외한 텍스트 데이터만 백업합니다. 암호화된 일기는 내보내기 대상에서 제외됩니다."
@@ -121,8 +136,8 @@ export default function DataExportPanel() {
                 파일 생성 옵션
               </p>
               <DataExportSplitOptions
-                value={splitOption}
-                onChange={setSplitOption}
+                value={txtSplitOption}
+                onChange={setTxtSplitOption}
                 disabled={format !== "txt"}
               />
             </div>

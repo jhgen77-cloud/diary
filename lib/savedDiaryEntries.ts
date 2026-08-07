@@ -55,13 +55,17 @@ function parse(raw: string | null): DiaryEntry[] {
   }
 }
 
-function persist(entries: DiaryEntry[]) {
+/** localStorage에 실제로 쓰기를 시도합니다. 저장 용량 초과 등으로 실패해도 앱이
+ * 죽지 않도록 예외를 여기서 잡고, 성공 여부만 boolean으로 알려줍니다(호출부가
+ * 실패를 알아야 하는 경우 — 예: 가져오기 — 이 값을 보고 사용자에게 알릴 수 있게). */
+function persist(entries: DiaryEntry[]): boolean {
   const payload: StoredPayload = { v: SCHEMA_VERSION, entries };
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    return true;
   } catch (error) {
-    // 저장 용량 초과 등으로 실패해도 앱이 죽지 않도록 방어합니다.
     console.error("일기 저장 공간이 부족합니다.", error);
+    return false;
   }
 }
 
@@ -120,11 +124,15 @@ export function clearSavedDiaryEntries() {
 
 /** 저장된 일기 목록 전체를 통째로 교체합니다 ('기억의 귀환' — 가져오기 병합 결과
  * 반영용). id 단위로만 add/remove하는 위 함수들과 달리, 같은 날짜의 일기를 다른
- * id의 항목으로 덮어써야 하는 가져오기 병합 결과를 그대로 반영할 수 있습니다. */
-export function setSavedDiaryEntries(entries: DiaryEntry[]) {
-  if (typeof window === "undefined") return;
-  persist(entries);
-  notify();
+ * id의 항목으로 덮어써야 하는 가져오기 병합 결과를 그대로 반영할 수 있습니다.
+ *
+ * 저장 공간이 부족해 실제로는 반영되지 못했을 수 있어, 성공 여부를 반환합니다
+ * (실패 시 localStorage는 이전 상태 그대로이므로 notify도 하지 않습니다). */
+export function setSavedDiaryEntries(entries: DiaryEntry[]): boolean {
+  if (typeof window === "undefined") return false;
+  const ok = persist(entries);
+  if (ok) notify();
+  return ok;
 }
 
 /** 로컬에 저장된 일기 목록을 구독합니다 (다른 탭에서의 변경도 반영됩니다). */
