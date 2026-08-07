@@ -33,6 +33,7 @@ import {
   removeSavedDiaryEntry,
   useSavedDiaryEntry,
 } from "@/lib/savedDiaryEntries";
+import { useEnvironmentSettings } from "@/lib/environmentSettings";
 
 const WEEKDAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -58,6 +59,9 @@ export default function DiaryWriteForm() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const existingEntry = useSavedDiaryEntry(editId);
+  // 환경 설정(SettingsManager)에서 고른 값 — "시간을 붙잡다"에서만 실제로
+  // 적용됩니다(요구사항). 제목란은 폰트명/폰트 색상만, 본문란은 다섯 항목 모두.
+  const envSettings = useEnvironmentSettings();
 
   // "아무 것도 안 한 상태"를 판단하는 기준 스냅샷. 새 글이면 빈 값, 기존 글을
   // 수정하러 들어왔다면(editId) 그 글을 불러온 뒤 이 값도 함께 갱신됩니다.
@@ -190,6 +194,20 @@ export default function DiaryWriteForm() {
       hasAttachment,
       images,
       createdAt: createdAtRef.current,
+      // 저장 시점의 환경 설정을 함께 반영합니다(요구사항) — 제목란은
+      // 폰트명/색상만, 본문란은 다섯 항목 모두.
+      titleStyle: {
+        fontFamily: envSettings.fontFamily,
+        fontColor: envSettings.fontColor,
+      },
+      contentStyle: {
+        fontFamily: envSettings.fontFamily,
+        fontSize: envSettings.fontSize,
+        fontColor: envSettings.fontColor,
+        textAlign: envSettings.textAlign,
+        backgroundType: envSettings.backgroundType,
+        backgroundColor: envSettings.backgroundColor,
+      },
     };
   }
 
@@ -339,9 +357,23 @@ export default function DiaryWriteForm() {
               <DiaryMoodField value={mood} onChange={setMood} />
               <DiaryWeatherField value={weather} onChange={setWeather} />
             </div>
-            <DiaryTitleField value={title} onChange={setTitle} />
+            <DiaryTitleField
+              value={title}
+              onChange={setTitle}
+              fontFamily={envSettings.fontFamily}
+              fontColor={envSettings.fontColor}
+            />
           </div>
-          <DiaryContentField value={content} onChange={handleContentChange} />
+          <DiaryContentField
+            value={content}
+            onChange={handleContentChange}
+            fontFamily={envSettings.fontFamily}
+            fontSize={envSettings.fontSize}
+            fontColor={envSettings.fontColor}
+            textAlign={envSettings.textAlign}
+            backgroundType={envSettings.backgroundType}
+            backgroundColor={envSettings.backgroundColor}
+          />
         </div>
       </Modal>
 

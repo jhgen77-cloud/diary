@@ -1,3 +1,9 @@
+import Modal from "@/components/Modal";
+
+// app/@modal/(.)diary/date/[date]/page.tsx와 내용이 같습니다(이 날짜별 보기
+// 기능 자체는 아직 미구현이라 두 경로 모두 안내 문구만 표시합니다). 직접
+// 접속/새로고침 시엔 인터셉트 라우트가 적용되지 않으므로 같은 내용을
+// 미러링해, 최소한 빈 "준비 중" 페이지 대신 같은 모달 형태로 보이게 합니다.
 export default async function DiaryDatePage({
   params,
 }: {
@@ -6,10 +12,8 @@ export default async function DiaryDatePage({
   const { date } = await params;
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-zinc-50 p-8 text-center dark:bg-black">
-      <p className="text-2xl text-black dark:text-zinc-50">
-        {date} — 아직 준비 중입니다.
-      </p>
-    </main>
+    <Modal title={date} closeHref="/">
+      <p className="text-lg text-black dark:text-zinc-50">아직 준비 중입니다.</p>
+    </Modal>
   );
 }

@@ -2,6 +2,13 @@ import JSZip from "jszip";
 import type { DiaryEntry } from "@/lib/mockDiaryEntries";
 import { MOOD_ICONS, WEATHER_ICONS, type MoodKey, type WeatherKey } from "@/lib/diaryIcons";
 import { stripInvalidXmlChars } from "@/lib/exportDiaryEntries";
+import type {
+  BackgroundType,
+  DiaryContentStyle,
+  DiaryTitleStyle,
+  FontFamilyKey,
+  TextAlignKey,
+} from "@/lib/environmentSettings";
 
 /** '기억의 귀환' — ZIP/XML로 백업한 일기를 다시 읽어들여 저장된 데이터와 병합하는
  * 로직. lib/exportDiaryEntries.ts가 만든 diary.xml(+images/) 구조를 그대로 되읽습니다. */
@@ -10,6 +17,9 @@ export type ImportOption = "skip" | "overwrite-source";
 
 const MOOD_KEYS = Object.keys(MOOD_ICONS) as MoodKey[];
 const WEATHER_KEYS = Object.keys(WEATHER_ICONS) as WeatherKey[];
+const FONT_FAMILY_KEYS: FontFamilyKey[] = ["system", "sans", "serif", "mono", "handwriting"];
+const TEXT_ALIGN_KEYS: TextAlignKey[] = ["left", "center", "right", "justify"];
+const BACKGROUND_TYPE_KEYS: BackgroundType[] = ["none", "solid"];
 
 function isMoodKey(value: string): value is MoodKey {
   return (MOOD_KEYS as string[]).includes(value);
@@ -17,6 +27,51 @@ function isMoodKey(value: string): value is MoodKey {
 
 function isWeatherKey(value: string): value is WeatherKey {
   return (WEATHER_KEYS as string[]).includes(value);
+}
+
+function isFontFamilyKey(value: string): value is FontFamilyKey {
+  return (FONT_FAMILY_KEYS as string[]).includes(value);
+}
+
+function isTextAlignKey(value: string): value is TextAlignKey {
+  return (TEXT_ALIGN_KEYS as string[]).includes(value);
+}
+
+function isBackgroundType(value: string): value is BackgroundType {
+  return (BACKGROUND_TYPE_KEYS as string[]).includes(value);
+}
+
+/** <entry> 속성에서 titleStyle/contentStyle을 되읽습니다. 내보내기 쪽에서 값이
+ * 없으면 속성 자체를 안 쓰므로, 필요한 속성이 하나라도 없거나(옛 백업 파일 등)
+ * 형식이 안 맞으면 그 스타일 전체를 undefined로 둡니다(entry 자체는 정상
+ * 복원되고, 기본 스타일로 보이는 것으로 충분히 안전한 대체 동작입니다). */
+function parseTitleStyle(node: Element): DiaryTitleStyle | undefined {
+  const fontFamily = node.getAttribute("titleFontFamily") ?? "";
+  const fontColor = node.getAttribute("titleFontColor");
+  if (!isFontFamilyKey(fontFamily) || !fontColor) return undefined;
+  return { fontFamily, fontColor };
+}
+
+function parseContentStyle(node: Element): DiaryContentStyle | undefined {
+  const fontFamily = node.getAttribute("contentFontFamily") ?? "";
+  const fontSizeAttr = node.getAttribute("contentFontSize");
+  const fontColor = node.getAttribute("contentFontColor");
+  const textAlign = node.getAttribute("contentTextAlign") ?? "";
+  const backgroundType = node.getAttribute("contentBackgroundType") ?? "";
+  const backgroundColor = node.getAttribute("contentBackgroundColor");
+  const fontSize = fontSizeAttr ? Number(fontSizeAttr) : NaN;
+
+  if (
+    !isFontFamilyKey(fontFamily) ||
+    !Number.isFinite(fontSize) ||
+    !fontColor ||
+    !isTextAlignKey(textAlign) ||
+    !isBackgroundType(backgroundType) ||
+    !backgroundColor
+  ) {
+    return undefined;
+  }
+  return { fontFamily, fontSize, fontColor, textAlign, backgroundType, backgroundColor };
 }
 
 interface ParsedEntry {
@@ -60,6 +115,8 @@ function parseDiaryXml(xmlText: string): ParsedEntry[] {
         hasAttachment: imagePaths.length > 0,
         images: [],
         createdAt: node.getAttribute("createdAt") || new Date().toISOString(),
+        titleStyle: parseTitleStyle(node),
+        contentStyle: parseContentStyle(node),
       };
       return { entry, imagePaths };
     })

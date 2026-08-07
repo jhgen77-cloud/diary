@@ -6,6 +6,7 @@ import { useState } from "react";
 import Modal from "@/components/Modal";
 import NoticeDialog from "@/components/NoticeDialog";
 import DiaryEntryImages from "@/components/DiaryEntryImages";
+import { FONT_FAMILY_CSS } from "@/components/FontFamilySelect";
 import { formatDiaryDate } from "@/lib/mockDiaryEntries";
 import { useSavedDiaryEntry, removeSavedDiaryEntry } from "@/lib/savedDiaryEntries";
 import {
@@ -103,7 +104,18 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
                   </span>
                 )}
               </div>
-              <p className="truncate text-lg font-semibold text-black sm:text-xl dark:text-zinc-50">
+              {/* "시간을 붙잡다"에서 저장된 폰트명/색상을 그대로 재현합니다
+                 (요구사항 — 저장 시 반영된 값이 나중에 볼 때도 보여야 함).
+                 titleStyle이 없는(다른 경로로 만든) 일기는 기본 스타일 그대로. */}
+              <p
+                style={{
+                  fontFamily: entry.titleStyle
+                    ? FONT_FAMILY_CSS[entry.titleStyle.fontFamily]
+                    : undefined,
+                  color: entry.titleStyle?.fontColor,
+                }}
+                className="truncate text-lg font-semibold text-black sm:text-xl dark:text-zinc-50"
+              >
                 {entry.title}
               </p>
             </div>
@@ -152,10 +164,29 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
              작성 일시 캡션은 그 바깥(shrink-0)에 따로 둬서, 본문이 짧을 때도 늘
              박스 좌측 하단에 고정되고, 내용이 길어 스크롤될 때도 함께 스크롤되어
              사라지지 않고 항상 보입니다. */}
-          <div className="flex min-h-0 flex-1 flex-col gap-2 rounded-2xl border border-black/[.06] p-3 sm:p-4 dark:border-white/[.08]">
+          {/* 본문 배경(단색일 때)도 저장된 그대로 재현합니다. */}
+          <div
+            style={{
+              backgroundColor:
+                entry.contentStyle?.backgroundType === "solid"
+                  ? entry.contentStyle.backgroundColor
+                  : undefined,
+            }}
+            className="flex min-h-0 flex-1 flex-col gap-2 rounded-2xl border border-black/[.06] p-3 sm:p-4 dark:border-white/[.08]"
+          >
             <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
               <DiaryEntryImages images={entry.images} />
-              <div className="text-sm whitespace-pre-wrap text-black sm:text-base dark:text-zinc-50">
+              <div
+                style={{
+                  fontFamily: entry.contentStyle
+                    ? FONT_FAMILY_CSS[entry.contentStyle.fontFamily]
+                    : undefined,
+                  fontSize: entry.contentStyle ? `${entry.contentStyle.fontSize}px` : undefined,
+                  color: entry.contentStyle?.fontColor,
+                  textAlign: entry.contentStyle?.textAlign,
+                }}
+                className="text-sm whitespace-pre-wrap text-black sm:text-base dark:text-zinc-50"
+              >
                 {entry.content}
               </div>
             </div>

@@ -1,4 +1,5 @@
 import type { MoodKey, WeatherKey } from "@/lib/diaryIcons";
+import type { DiaryContentStyle, DiaryTitleStyle } from "@/lib/environmentSettings";
 
 export interface DiaryEntry {
   id: string;
@@ -12,6 +13,11 @@ export interface DiaryEntry {
   images: string[];
   /** 최초로 저장된 시각 (ISO 문자열) — 상세 보기의 "작성된 일기입니다" 문구에 사용 */
   createdAt: string;
+  /** "시간을 붙잡다"에서 저장할 당시 적용돼 있던 환경 설정(제목/본문 각각).
+   * 그 모달에서만 쓰는 값이라 선택 필드이며, 이 값이 없는(옛/다른 경로로 만든)
+   * 일기는 기본 스타일로 표시됩니다. */
+  titleStyle?: DiaryTitleStyle;
+  contentStyle?: DiaryContentStyle;
 }
 
 const WEEKDAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];

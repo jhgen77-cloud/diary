@@ -18,8 +18,16 @@ interface StoredPayload {
 
 const listeners = new Set<() => void>();
 
+// 서버 렌더링 시(그리고 하이드레이션 중) 쓰는 빈 목록. useSyncExternalStore는
+// getServerSnapshot이 매번 같은 참조를 반환하길 요구합니다 — 호출마다 새
+// 배열([])을 만들어 반환하면 "매번 값이 바뀐 것"으로 보여, React가
+// "The result of getServerSnapshot should be cached to avoid an infinite
+// loop" 경고와 함께 무한 루프에 빠질 수 있습니다. 하나의 배열을 재사용해
+// 이를 피합니다.
+const EMPTY_ENTRIES: DiaryEntry[] = [];
+
 let cachedRaw: string | null = null;
-let cachedSnapshot: DiaryEntry[] = [];
+let cachedSnapshot: DiaryEntry[] = EMPTY_ENTRIES;
 
 function isValidEntry(entry: unknown): entry is DiaryEntry {
   if (!entry || typeof entry !== "object") return false;
@@ -79,7 +87,7 @@ function getSnapshot(): DiaryEntry[] {
 }
 
 function getServerSnapshot(): DiaryEntry[] {
-  return [];
+  return EMPTY_ENTRIES;
 }
 
 function subscribe(onStoreChange: () => void) {

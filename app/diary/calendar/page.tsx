@@ -1,9 +1,13 @@
+import Modal from "@/components/Modal";
+import DiaryCalendarBrowser from "@/components/DiaryCalendarBrowser";
+import { mockDiaryEntries } from "@/lib/mockDiaryEntries";
+
+// app/@modal/(.)diary/calendar/page.tsx와 내용이 같습니다. 직접 접속/새로고침
+// 시엔 인터셉트 라우트가 적용되지 않으므로 같은 내용을 그대로 미러링합니다.
 export default function DiaryCalendarPage() {
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-zinc-50 p-8 text-center dark:bg-black">
-      <p className="text-2xl text-black dark:text-zinc-50">
-        달력 — 아직 준비 중입니다.
-      </p>
-    </main>
+    <Modal title="그날을 거닐다" size="xl" closeHref="/">
+      <DiaryCalendarBrowser entries={mockDiaryEntries} />
+    </Modal>
   );
 }

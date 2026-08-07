@@ -165,6 +165,28 @@ export function stripInvalidXmlChars(value: string) {
     .join("");
 }
 
+// titleStyle/contentStyle(환경 설정값)을 <entry> 태그의 추가 속성으로 함께
+// 적어 둡니다. 값 자체는 전부 영문/숫자/#hex라 XML 속성에 그대로 써도 안전
+// 합니다(escapeXml 불필요). 둘 다 선택 필드라 없으면 속성 자체를 생략합니다
+// — 내보내기→초기화→가져오기를 거쳐도 "그날을 거닐다"에서 보던 스타일이
+// 그대로 복원되도록 하기 위함입니다(실제로 유실되는 문제가 있어 추가함).
+function buildStyleAttrs(entry: DiaryEntry): string {
+  const attrs: string[] = [];
+  if (entry.titleStyle) {
+    attrs.push(`titleFontFamily="${entry.titleStyle.fontFamily}"`);
+    attrs.push(`titleFontColor="${entry.titleStyle.fontColor}"`);
+  }
+  if (entry.contentStyle) {
+    attrs.push(`contentFontFamily="${entry.contentStyle.fontFamily}"`);
+    attrs.push(`contentFontSize="${entry.contentStyle.fontSize}"`);
+    attrs.push(`contentFontColor="${entry.contentStyle.fontColor}"`);
+    attrs.push(`contentTextAlign="${entry.contentStyle.textAlign}"`);
+    attrs.push(`contentBackgroundType="${entry.contentStyle.backgroundType}"`);
+    attrs.push(`contentBackgroundColor="${entry.contentStyle.backgroundColor}"`);
+  }
+  return attrs.length > 0 ? ` ${attrs.join(" ")}` : "";
+}
+
 function buildDiaryXml(entries: DiaryEntry[]) {
   const items = entries
     .map((entry) => {
@@ -172,7 +194,7 @@ function buildDiaryXml(entries: DiaryEntry[]) {
         .map((_, index) => `      <image>images/${entry.id}-${index}.jpg</image>`)
         .join("\n");
       return [
-        `  <entry id="${escapeXml(entry.id)}" date="${entry.date}" mood="${entry.mood}" weather="${entry.weather ?? ""}" createdAt="${entry.createdAt}">`,
+        `  <entry id="${escapeXml(entry.id)}" date="${entry.date}" mood="${entry.mood}" weather="${entry.weather ?? ""}" createdAt="${entry.createdAt}"${buildStyleAttrs(entry)}>`,
         `    <title>${escapeXml(stripInvalidXmlChars(entry.title))}</title>`,
         // CDATA 대신 title과 같은 방식(escapeXml)으로 통일했습니다. 일부
         // 브라우저의 기본 XML 뷰어는 CDATA 구간을 접어서(펼치기 전까진 안 보이게)
