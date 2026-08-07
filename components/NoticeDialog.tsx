@@ -2,6 +2,7 @@
 
 import Image, { type StaticImageData } from "next/image";
 import { createPortal } from "react-dom";
+import { useEffect, useRef } from "react";
 import { useMounted } from "@/lib/useMounted";
 
 interface NoticeDialogProps {
@@ -16,6 +17,9 @@ interface NoticeDialogProps {
   confirmFirst?: boolean;
   /** true면 긴 한 줄 문구가 줄바꿈되지 않도록 더 넓은 박스를 사용합니다. */
   wide?: boolean;
+  /** 지정하면 버튼 없이 이 시간(ms) 후 onConfirm이 자동 호출되어 알림이 저절로
+   * 사라집니다(예: '같은 날짜의 일기가 존재합니다.' 같은 안내성 토스트). */
+  autoDismissMs?: number;
 }
 
 export default function NoticeDialog({
@@ -27,8 +31,22 @@ export default function NoticeDialog({
   onCancel,
   confirmFirst = false,
   wide = false,
+  autoDismissMs,
 }: NoticeDialogProps) {
   const mounted = useMounted();
+
+  // onConfirm이 렌더마다 새 함수여도 타이머가 매번 재시작되지 않도록 ref로 최신
+  // 콜백만 계속 갱신해 두고, 타이머 자체는 autoDismissMs가 바뀔 때만 새로 겁니다.
+  const onConfirmRef = useRef(onConfirm);
+  useEffect(() => {
+    onConfirmRef.current = onConfirm;
+  });
+  useEffect(() => {
+    if (!autoDismissMs) return;
+    const timer = setTimeout(() => onConfirmRef.current(), autoDismissMs);
+    return () => clearTimeout(timer);
+  }, [autoDismissMs]);
+
   if (!mounted) return null;
 
   return createPortal(
@@ -50,35 +68,37 @@ export default function NoticeDialog({
             {message}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {confirmFirst && (
-            <button
-              type="button"
-              onClick={onConfirm}
-              className="rounded-full bg-black px-4 py-1.5 text-sm text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-black"
-            >
-              {confirmLabel}
-            </button>
-          )}
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="rounded-full border border-black/10 px-4 py-1.5 text-sm text-black/70 transition-colors hover:bg-black/[.06] dark:border-white/15 dark:text-zinc-300 dark:hover:bg-white/[.08]"
-            >
-              {cancelLabel}
-            </button>
-          )}
-          {!confirmFirst && (
-            <button
-              type="button"
-              onClick={onConfirm}
-              className="rounded-full bg-black px-4 py-1.5 text-sm text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-black"
-            >
-              {confirmLabel}
-            </button>
-          )}
-        </div>
+        {!autoDismissMs && (
+          <div className="flex items-center gap-2">
+            {confirmFirst && (
+              <button
+                type="button"
+                onClick={onConfirm}
+                className="rounded-full bg-black px-4 py-1.5 text-sm text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-black"
+              >
+                {confirmLabel}
+              </button>
+            )}
+            {onCancel && (
+              <button
+                type="button"
+                onClick={onCancel}
+                className="rounded-full border border-black/10 px-4 py-1.5 text-sm text-black/70 transition-colors hover:bg-black/[.06] dark:border-white/15 dark:text-zinc-300 dark:hover:bg-white/[.08]"
+              >
+                {cancelLabel}
+              </button>
+            )}
+            {!confirmFirst && (
+              <button
+                type="button"
+                onClick={onConfirm}
+                className="rounded-full bg-black px-4 py-1.5 text-sm text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-black"
+              >
+                {confirmLabel}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>,
     document.body

@@ -118,6 +118,15 @@ export function clearSavedDiaryEntries() {
   notify();
 }
 
+/** 저장된 일기 목록 전체를 통째로 교체합니다 ('기억의 귀환' — 가져오기 병합 결과
+ * 반영용). id 단위로만 add/remove하는 위 함수들과 달리, 같은 날짜의 일기를 다른
+ * id의 항목으로 덮어써야 하는 가져오기 병합 결과를 그대로 반영할 수 있습니다. */
+export function setSavedDiaryEntries(entries: DiaryEntry[]) {
+  if (typeof window === "undefined") return;
+  persist(entries);
+  notify();
+}
+
 /** 로컬에 저장된 일기 목록을 구독합니다 (다른 탭에서의 변경도 반영됩니다). */
 export function useSavedDiaryEntries(): DiaryEntry[] {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
