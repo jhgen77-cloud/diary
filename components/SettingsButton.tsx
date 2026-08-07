@@ -7,7 +7,7 @@ export default function SettingsButton() {
     <Link
       href="/settings"
       aria-label="설정"
-      className="absolute top-4 right-4 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-opacity hover:opacity-70 sm:top-6 sm:right-6 sm:h-10 sm:w-10"
+      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-opacity hover:opacity-70 sm:h-10 sm:w-10"
     >
       <Image
         src={settingsIcon}

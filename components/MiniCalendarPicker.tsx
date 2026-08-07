@@ -22,7 +22,7 @@ function buildCalendarCells(year: number, month: number) {
 }
 
 const navButtonClass =
-  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-black/60 transition-transform hover:bg-black/[.06] active:scale-90 dark:text-zinc-300 dark:hover:bg-white/[.08]";
+  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[var(--text-sub)] transition-transform hover:bg-[var(--hover)] active:scale-90";
 
 export default function MiniCalendarPicker({
   value,
@@ -74,7 +74,7 @@ export default function MiniCalendarPicker({
   return (
     <div
       ref={containerRef}
-      className="absolute top-full right-0 z-10 mt-2 w-56 rounded-2xl border border-black/10 bg-zinc-50 p-3 shadow-lg dark:border-white/15 dark:bg-zinc-900"
+      className="absolute top-full right-0 z-10 mt-2 w-56 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3"
     >
       <div className="flex items-center justify-between pb-2">
         <button
@@ -85,7 +85,7 @@ export default function MiniCalendarPicker({
         >
           ‹
         </button>
-        <p className="text-xs font-medium text-black/70 dark:text-zinc-300">
+        <p className="text-xs font-medium text-[var(--text-sub)]">
           {year}년 {month + 1}월
         </p>
         <button
@@ -97,7 +97,7 @@ export default function MiniCalendarPicker({
           ›
         </button>
       </div>
-      <div className="grid grid-cols-7 gap-0.5 pb-1 text-center text-[0.6rem] text-black/50 dark:text-zinc-400">
+      <div className="grid grid-cols-7 gap-0.5 pb-1 text-center text-[0.6rem] text-[var(--text-sub)]">
         {WEEKDAY_HEADERS.map((weekday, index) => (
           <span
             key={weekday}
@@ -133,10 +133,10 @@ export default function MiniCalendarPicker({
               onClick={() => onSelect(new Date(year, month, day))}
               className={`flex h-6 w-6 items-center justify-center rounded-full text-[0.7rem] transition-colors ${
                 isSelected
-                  ? "bg-foreground text-background"
+                  ? "bg-[var(--accent)] text-white"
                   : isToday
-                    ? "border border-black/30 text-black dark:border-white/40 dark:text-zinc-50"
-                    : "text-black/70 hover:bg-black/[.06] dark:text-zinc-300 dark:hover:bg-white/[.08]"
+                    ? "border border-[var(--accent)]/50 text-[var(--text)]"
+                    : "text-[var(--text-sub)] hover:bg-[var(--hover)]"
               }`}
             >
               {day}

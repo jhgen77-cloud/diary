@@ -42,8 +42,8 @@ export default function DataTabNav({ active, onChange }: DataTabNavProps) {
               onClick={() => onChange(tab.key)}
               className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors sm:text-sm ${
                 selected
-                  ? "bg-black text-white dark:bg-white dark:text-black"
-                  : "border border-black/10 text-black/70 hover:bg-black/[.06] dark:border-white/15 dark:text-zinc-300 dark:hover:bg-white/[.08]"
+                  ? "bg-[var(--accent)] text-white"
+                  : "border border-[var(--border)] text-[var(--text-sub)] hover:bg-[var(--hover)]"
               }`}
             >
               {tab.label}

@@ -75,13 +75,13 @@ export default function DataExportSplitOptions({
         aria-haspopup="true"
         aria-expanded={open}
         disabled={disabled}
-        className="flex w-44 items-center justify-between gap-2 rounded-full border border-black/10 bg-white/60 px-3 py-1.5 text-left transition-colors hover:bg-black/[.06] sm:w-52 dark:border-white/15 dark:bg-white/[.04] dark:hover:bg-white/[.08]"
+        className="flex w-44 items-center justify-between gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-left transition-colors hover:bg-[var(--hover)] sm:w-52"
       >
-        <span className="truncate text-xs text-black/80 sm:text-sm dark:text-zinc-200">
+        <span className="truncate text-xs text-[var(--text-sub)] sm:text-sm">
           {SPLIT_LABELS[value]}
         </span>
         <span
-          className={`shrink-0 text-[0.6rem] text-black/50 transition-transform sm:text-xs dark:text-zinc-400 ${
+          className={`shrink-0 text-[0.6rem] text-[var(--text-sub)] transition-transform sm:text-xs ${
             open ? "rotate-180" : ""
           }`}
         >
@@ -91,7 +91,7 @@ export default function DataExportSplitOptions({
       {open && (
         <div
           aria-label="파일 생성 옵션"
-          className="absolute top-full left-0 z-10 mt-1 flex w-44 flex-col rounded-xl border border-black/10 bg-zinc-50 p-1 shadow-lg sm:w-52 dark:border-white/15 dark:bg-zinc-900"
+          className="absolute top-full left-0 z-10 mt-1 flex w-44 flex-col rounded-xl border border-[var(--border)] bg-[var(--card)] p-1 sm:w-52"
         >
           {order.map((key) => (
             <DataOptionRadio

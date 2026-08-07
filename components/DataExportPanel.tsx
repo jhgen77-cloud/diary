@@ -97,14 +97,14 @@ export default function DataExportPanel() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <p className="text-xs text-black/70 sm:text-sm dark:text-zinc-300">
+      <p className="text-xs text-[var(--text-sub)] sm:text-sm">
         작성한 글을 외부 파일로 내보내기 합니다.
       </p>
 
-      <div className="relative flex flex-col gap-1 rounded-2xl border border-black/[.06] p-2.5 pt-3.5 dark:border-white/[.08]">
+      <div className="relative flex flex-col gap-1 rounded-2xl border border-[var(--border)] p-2.5 pt-3.5">
         {/* 박스 테두리 선 위에 걸치는 legend 스타일 라벨. 배경색을 모달 배경(Modal.tsx의
-           bg-zinc-50/dark:bg-zinc-900)과 맞춰 라벨 아래 테두리 선이 끊겨 보이게 합니다. */}
-        <p className="absolute -top-2.5 left-3 bg-zinc-50 px-1 text-xs font-semibold text-black sm:text-sm dark:bg-zinc-900 dark:text-zinc-50">
+           bg-[var(--card)])과 맞춰 라벨 아래 테두리 선이 끊겨 보이게 합니다. */}
+        <p className="absolute -top-2.5 left-3 bg-[var(--card)] px-1 text-xs font-semibold text-[var(--text)] sm:text-sm">
           파일 형식 선택
         </p>
         <div role="radiogroup" aria-label="파일 형식" className="flex flex-col">
@@ -115,7 +115,7 @@ export default function DataExportPanel() {
             onSelect={() => setFormat("zip")}
           >
             <div className="flex items-center gap-2 pt-0.5">
-              <p className="text-xs font-semibold text-black sm:text-sm dark:text-zinc-50">
+              <p className="text-xs font-semibold text-[var(--text)] sm:text-sm">
                 파일 생성 옵션
               </p>
               <DataExportSplitOptions
@@ -132,7 +132,7 @@ export default function DataExportPanel() {
             onSelect={() => setFormat("txt")}
           >
             <div className="flex items-center gap-2 pt-0.5">
-              <p className="text-xs font-semibold text-black sm:text-sm dark:text-zinc-50">
+              <p className="text-xs font-semibold text-[var(--text)] sm:text-sm">
                 파일 생성 옵션
               </p>
               <DataExportSplitOptions

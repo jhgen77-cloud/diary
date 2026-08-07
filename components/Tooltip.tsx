@@ -17,9 +17,17 @@ interface TooltipProps {
 }
 
 /** 자식 요소 위에 호버/포커스하면 label을 위쪽에 짧게 띄워 보여주는 툴팁. 순수
- * CSS(이름 붙인 그룹의 hover/focus-within)로만 동작해 별도 상태나 포털이 필요
+ * CSS(이름 붙인 그룹의 hover/focus-visible)로만 동작해 별도 상태나 포털이 필요
  * 없습니다. 명명된 그룹(group/tooltip)을 써서, children이 자체적으로 쓰는 다른
- * group(예: DiaryMenuItem의 이미지 확대 효과)과 서로 간섭하지 않습니다. */
+ * group(예: DiaryMenuItem의 이미지 확대 효과)과 서로 간섭하지 않습니다.
+ *
+ * focus-within이 아니라 focus-visible을 기준으로 삼습니다 — children이 버튼일
+ * 때, 버튼을 클릭하면 (호버가 끝난 뒤에도) 계속 포커스가 남아 focus-within이
+ * 계속 참이 되고, 그 상태로 마우스가 다른 버튼으로 넘어가면 두 툴팁이 동시에
+ * 떠 있는 문제가 있었습니다(실제로 재현해 확인함). focus-visible은 마우스
+ * 클릭으로 얻은 포커스에는 적용되지 않고(브라우저가 알아서 구분) 키보드 Tab
+ * 이동으로 얻은 포커스에만 적용되므로, 클릭 후 잔상은 사라지고 키보드
+ * 접근성은 그대로 유지됩니다. */
 export default function Tooltip({
   label,
   children,
@@ -39,7 +47,7 @@ export default function Tooltip({
       {children}
       <span
         role="tooltip"
-        className={`pointer-events-none absolute -top-2 z-20 -translate-y-full scale-95 rounded-full bg-black px-2.5 py-1 text-xs whitespace-nowrap text-white opacity-0 shadow-md transition-all duration-150 group-hover/tooltip:scale-100 group-hover/tooltip:opacity-100 group-focus-within/tooltip:scale-100 group-focus-within/tooltip:opacity-100 dark:bg-white dark:text-black ${
+        className={`pointer-events-none absolute -top-2 z-20 -translate-y-full scale-95 rounded-full bg-[var(--text)] px-2.5 py-1 text-xs whitespace-nowrap text-white opacity-0 transition-all duration-150 group-hover/tooltip:scale-100 group-hover/tooltip:opacity-100 group-focus-visible/tooltip:scale-100 group-focus-visible/tooltip:opacity-100 group-has-[:focus-visible]/tooltip:scale-100 group-has-[:focus-visible]/tooltip:opacity-100 ${
           align === "start" ? "left-0" : "right-0"
         }`}
       >

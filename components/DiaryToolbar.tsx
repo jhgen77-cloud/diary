@@ -14,7 +14,7 @@ interface DiaryToolbarProps {
 }
 
 const iconButtonClass =
-  "flex shrink-0 items-center justify-center rounded-full p-1.5 transition-transform hover:bg-black/[.06] active:scale-90 active:bg-black/[.12] dark:hover:bg-white/[.08] dark:active:bg-white/[.14]";
+  "flex shrink-0 items-center justify-center rounded-full p-1.5 transition-transform hover:bg-[var(--hover)] active:scale-90 active:bg-[var(--active)]";
 
 export default function DiaryToolbar({
   initialQuery = "",
@@ -73,7 +73,7 @@ export default function DiaryToolbar({
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="검색"
-          className="h-8 min-w-0 max-w-[14rem] flex-1 rounded-full border border-black/10 bg-white/60 px-4 text-sm text-black outline-none placeholder:text-black/40 focus:border-black/30 sm:h-9 sm:max-w-[18rem] sm:text-base dark:border-white/15 dark:bg-white/[.04] dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:border-white/30"
+          className="h-8 min-w-0 max-w-[14rem] flex-1 rounded-full border border-[var(--border)] bg-[var(--card)] px-4 text-sm text-[var(--text)] outline-none placeholder:text-[var(--placeholder)] focus:border-[var(--accent)] sm:h-9 sm:max-w-[18rem] sm:text-base"
         />
         <button
           type="button"

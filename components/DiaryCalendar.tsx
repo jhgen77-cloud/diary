@@ -24,7 +24,7 @@ interface CalendarCell {
 const WEEKDAY_HEADERS = ["일", "월", "화", "수", "목", "금", "토"];
 
 const navButtonClass =
-  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-black/60 transition-transform hover:bg-black/[.06] active:scale-90 active:bg-black/[.12] dark:text-zinc-300 dark:hover:bg-white/[.08] dark:active:bg-white/[.14]";
+  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[var(--text-sub)] transition-transform hover:bg-[var(--hover)] active:scale-90 active:bg-[var(--active)]";
 
 function buildCalendarCells(entries: DiaryEntry[], year: number, month: number) {
   const firstWeekday = new Date(year, month, 1).getDay();
@@ -74,7 +74,7 @@ export default function DiaryCalendar({
         >
           ‹
         </button>
-        <p className="text-sm font-medium text-black/70 sm:text-base dark:text-zinc-300">
+        <p className="text-sm font-medium text-[var(--text-sub)] sm:text-base">
           {year}년 {month + 1}월
         </p>
         <button
@@ -86,7 +86,7 @@ export default function DiaryCalendar({
           ›
         </button>
       </div>
-      <div className="grid shrink-0 grid-cols-7 gap-1 pb-1 text-center text-[0.65rem] text-black/50 sm:gap-2 sm:text-xs dark:text-zinc-400">
+      <div className="grid shrink-0 grid-cols-7 gap-1 pb-1 text-center text-[0.65rem] text-[var(--text-sub)] sm:gap-2 sm:text-xs">
         {WEEKDAY_HEADERS.map((weekday, index) => (
           <span
             key={weekday}
@@ -114,17 +114,17 @@ export default function DiaryCalendar({
             <div
               className={`flex h-full flex-col gap-0.5 rounded-xl border p-1 sm:p-1.5 ${
                 isSelected
-                  ? "border-black/60 ring-2 ring-black/30 dark:border-white/70 dark:ring-white/30"
+                  ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/40"
                   : isToday
-                    ? "border-black/30 dark:border-white/40"
-                    : "border-black/[.06] dark:border-white/[.08]"
-              } ${entry ? "bg-white/60 dark:bg-white/[.03]" : ""}`}
+                    ? "border-[var(--accent)]/50"
+                    : "border-[var(--border)]"
+              } ${entry ? "bg-[var(--card)]" : ""}`}
             >
               <span
                 className={`text-xs font-semibold sm:text-sm ${
                   isToday || isSelected
-                    ? "text-black dark:text-zinc-50"
-                    : "text-black/70 dark:text-zinc-300"
+                    ? "text-[var(--text)]"
+                    : "text-[var(--text-sub)]"
                 }`}
               >
                 {day}
@@ -161,7 +161,7 @@ export default function DiaryCalendar({
                       </span>
                     )}
                   </div>
-                  <span className="truncate text-[0.6rem] leading-tight text-black/70 sm:text-[0.7rem] dark:text-zinc-300">
+                  <span className="truncate text-[0.6rem] leading-tight text-[var(--text-sub)] sm:text-[0.7rem]">
                     {entry.title}
                   </span>
                 </>

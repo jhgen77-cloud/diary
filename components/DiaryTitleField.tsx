@@ -30,7 +30,7 @@ export default function DiaryTitleField({
           fontFamily: fontFamily ? FONT_FAMILY_CSS[fontFamily] : undefined,
           color: fontColor,
         }}
-        className="h-7 min-w-0 flex-1 rounded-full border border-black/10 bg-white/60 px-3 text-xs text-black outline-none placeholder:text-black/40 focus:border-black/30 sm:h-8 sm:text-sm dark:border-white/15 dark:bg-white/[.04] dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:border-white/30"
+        className="h-7 min-w-0 flex-1 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 text-xs text-[var(--text)] outline-none placeholder:text-[var(--placeholder)] focus:border-[var(--accent)] sm:h-8 sm:text-sm"
       />
     </div>
   );

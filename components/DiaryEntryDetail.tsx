@@ -25,7 +25,7 @@ interface DiaryEntryDetailProps {
 // 기분/날씨 아이콘(래핑 없는 순수 아이콘 크기)과 바깥 테두리를 맞추기 위해
 // 버튼 자체를 같은 크기(h-7/h-8)로 맞췄습니다.
 const iconButtonClass =
-  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/[.06] active:scale-90 sm:h-8 sm:w-8 dark:hover:bg-white/[.08]";
+  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--hover)] active:scale-90 sm:h-8 sm:w-8";
 
 type DialogState = { type: "none" } | { type: "delete-confirm" } | { type: "delete-done" };
 
@@ -80,7 +80,7 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
     <>
       <Modal title="그날을 거닐다" size="xl" tall>
         <div className="flex min-h-0 flex-1 flex-col gap-2">
-          <div className="flex shrink-0 items-start justify-between gap-3 rounded-2xl border border-black/[.06] p-2 sm:p-2.5 dark:border-white/[.08]">
+          <div className="flex shrink-0 items-start justify-between gap-3 rounded-2xl border border-[var(--border)] p-2 sm:p-2.5">
             {/* 좌측: 기분/날씨 아이콘 → 제목, 우측: 삭제/수정 아이콘 → 날짜 — 같은
                 구조(아이콘 줄 + 텍스트, gap-1)로 맞춰서 상하 간격이 정확히 동일합니다. */}
             <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -114,7 +114,7 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
                     : undefined,
                   color: entry.titleStyle?.fontColor,
                 }}
-                className="truncate text-lg font-semibold text-black sm:text-xl dark:text-zinc-50"
+                className="truncate text-lg font-semibold text-[var(--text)] sm:text-xl"
               >
                 {entry.title}
               </p>
@@ -152,7 +152,7 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
                   </span>
                 </button>
               </div>
-              <p className="text-sm whitespace-nowrap text-black/70 sm:text-base dark:text-zinc-300">
+              <p className="text-sm whitespace-nowrap text-[var(--text-sub)] sm:text-base">
                 {year}년 {month}월 {day}일 ({weekday})
               </p>
             </div>
@@ -172,7 +172,7 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
                   ? entry.contentStyle.backgroundColor
                   : undefined,
             }}
-            className="flex min-h-0 flex-1 flex-col gap-2 rounded-2xl border border-black/[.06] p-3 sm:p-4 dark:border-white/[.08]"
+            className="flex min-h-0 flex-1 flex-col gap-2 rounded-2xl border border-[var(--border)] p-3 sm:p-4"
           >
             <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
               <DiaryEntryImages images={entry.images} />
@@ -185,12 +185,12 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
                   color: entry.contentStyle?.fontColor,
                   textAlign: entry.contentStyle?.textAlign,
                 }}
-                className="text-sm whitespace-pre-wrap text-black sm:text-base dark:text-zinc-50"
+                className="text-sm whitespace-pre-wrap text-[var(--text)] sm:text-base"
               >
                 {entry.content}
               </div>
             </div>
-            <p className="shrink-0 pt-2 text-left text-[0.7rem] text-black/40 sm:text-xs dark:text-zinc-500">
+            <p className="shrink-0 pt-2 text-left text-[0.7rem] text-[var(--text-sub)] sm:text-xs">
               {createdLabel}
             </p>
           </div>

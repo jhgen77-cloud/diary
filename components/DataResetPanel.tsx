@@ -47,11 +47,11 @@ export default function DataResetPanel() {
         {/* 사이드바 바로 옆, 모달 왼쪽 가장자리에 가까워 align="start"로 오른쪽
            (여유 공간) 방향으로 펼치게 해 모달 밖으로 벗어나지 않게 합니다. */}
         <Tooltip label="DB경로" align="start" focusable>
-          <span className="shrink-0 rounded-lg border border-black/10 px-4 py-1 text-center text-xs font-medium whitespace-nowrap text-black/70 sm:px-5 sm:py-1.5 sm:text-sm dark:border-white/15 dark:text-zinc-300">
+          <span className="shrink-0 rounded-lg border border-[var(--border)] px-4 py-1 text-center text-xs font-medium whitespace-nowrap text-[var(--text-sub)] sm:px-5 sm:py-1.5 sm:text-sm">
             기억의 은하
           </span>
         </Tooltip>
-        <span className="truncate text-xs text-black/60 sm:text-sm dark:text-zinc-400">
+        <span className="truncate text-xs text-[var(--text-sub)] sm:text-sm">
           (데이터베이스 미구현) 브라우저 로컬 저장소 · diary:savedEntries
         </span>
       </div>
@@ -63,7 +63,7 @@ export default function DataResetPanel() {
           <div className="flex flex-wrap items-center gap-2">
             {/* 이 텍스트도 사이드바와 같은 왼쪽 열에 있어 align="start"를 씁니다. */}
             <Tooltip label="데이터초기화" align="start" focusable>
-              <span className="shrink-0 rounded-lg border border-black/10 px-4 py-1 text-center text-xs font-medium whitespace-nowrap text-black/70 sm:px-5 sm:py-1.5 sm:text-sm dark:border-white/15 dark:text-zinc-300">
+              <span className="shrink-0 rounded-lg border border-[var(--border)] px-4 py-1 text-center text-xs font-medium whitespace-nowrap text-[var(--text-sub)] sm:px-5 sm:py-1.5 sm:text-sm">
                 기억의 소멸
               </span>
             </Tooltip>
@@ -78,7 +78,7 @@ export default function DataResetPanel() {
               type="button"
               onClick={handleResetClick}
               disabled={!agreed}
-              className="shrink-0 rounded-full border border-black/10 px-4 py-1.5 text-xs text-black/70 transition-colors hover:bg-black/[.06] disabled:pointer-events-none disabled:opacity-40 sm:text-sm dark:border-white/15 dark:text-zinc-300 dark:hover:bg-white/[.08]"
+              className="shrink-0 rounded-full border border-[var(--border)] px-4 py-1.5 text-xs text-[var(--text-sub)] transition-colors hover:bg-[var(--hover)] disabled:pointer-events-none disabled:opacity-40 sm:text-sm"
             >
               소멸
             </button>

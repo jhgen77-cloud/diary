@@ -33,7 +33,7 @@ export default function DiaryEntryImages({ images }: DiaryEntryImagesProps) {
   if (images.length === 0) return null;
 
   return (
-    <div className="relative flex h-40 w-full shrink-0 items-center justify-center overflow-hidden rounded-xl bg-black/[.03] sm:h-48 dark:bg-white/[.03]">
+    <div className="relative flex h-40 w-full shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--hover)] sm:h-48">
       {/* eslint-disable-next-line @next/next/no-img-element -- data URL(로컬 저장된 리사이즈 이미지)이라 next/image 최적화 대상이 아님 */}
       <img
         src={images[index]}

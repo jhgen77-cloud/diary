@@ -87,19 +87,19 @@ export default function ColorPalette({ value, onChange, disabled = false }: Colo
         aria-haspopup="true"
         aria-expanded={open}
         disabled={disabled}
-        className="flex w-40 items-center justify-between gap-2 rounded-full border border-black/10 bg-white/60 px-3 py-1.5 text-left transition-colors hover:bg-black/[.06] sm:w-48 dark:border-white/15 dark:bg-white/[.04] dark:hover:bg-white/[.08]"
+        className="flex w-40 items-center justify-between gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-left transition-colors hover:bg-[var(--hover)] sm:w-48"
       >
         <span className="flex min-w-0 items-center gap-2">
           <span
-            className="h-3.5 w-3.5 shrink-0 rounded-full border border-black/10 dark:border-white/20"
+            className="h-3.5 w-3.5 shrink-0 rounded-full border border-[var(--border)]"
             style={{ backgroundColor: value }}
           />
-          <span className="truncate text-xs text-black/80 sm:text-sm dark:text-zinc-200">
+          <span className="truncate text-xs text-[var(--text-sub)] sm:text-sm">
             {value}
           </span>
         </span>
         <span
-          className={`shrink-0 text-[0.6rem] text-black/50 transition-transform sm:text-xs dark:text-zinc-400 ${
+          className={`shrink-0 text-[0.6rem] text-[var(--text-sub)] transition-transform sm:text-xs ${
             open ? "rotate-180" : ""
           }`}
         >
@@ -109,13 +109,13 @@ export default function ColorPalette({ value, onChange, disabled = false }: Colo
       {open && (
         <div
           aria-label="배경 색상 팔레트"
-          className="absolute top-full left-0 z-10 mt-1 flex w-56 flex-col gap-3 rounded-xl border border-black/10 bg-zinc-50 p-3 shadow-lg sm:w-64 dark:border-white/15 dark:bg-zinc-900"
+          className="absolute top-full left-0 z-10 mt-1 flex w-56 flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 sm:w-64"
         >
           <ColorGradientPicker value={value} onChange={onChange} />
 
           <div className="flex items-center gap-2">
             <span
-              className="h-7 w-7 shrink-0 rounded-full border border-black/10 dark:border-white/20"
+              className="h-7 w-7 shrink-0 rounded-full border border-[var(--border)]"
               style={{ backgroundColor: isValidHex(hexInput) ? hexInput : value }}
             />
             <input
@@ -131,7 +131,7 @@ export default function ColorPalette({ value, onChange, disabled = false }: Colo
               }}
               spellCheck={false}
               aria-label="색상 코드(hex) 직접 입력"
-              className="h-8 min-w-0 flex-1 rounded-full border border-black/10 bg-white/60 px-3 text-xs text-black uppercase outline-none focus:border-black/30 sm:text-sm dark:border-white/15 dark:bg-white/[.04] dark:text-zinc-50 dark:focus:border-white/30"
+              className="h-8 min-w-0 flex-1 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 text-xs text-[var(--text)] uppercase outline-none focus:border-[var(--accent)] sm:text-sm"
             />
           </div>
 
@@ -149,8 +149,8 @@ export default function ColorPalette({ value, onChange, disabled = false }: Colo
                   onClick={() => onChange(color.hex)}
                   className={`aspect-square rounded-full border transition-transform active:scale-90 ${
                     selected
-                      ? "border-black ring-2 ring-black/60 dark:border-white dark:ring-white/60"
-                      : "border-black/10 dark:border-white/20"
+                      ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/60"
+                      : "border-[var(--border)]"
                   }`}
                   style={{ backgroundColor: color.hex }}
                 />

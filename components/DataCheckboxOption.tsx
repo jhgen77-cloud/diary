@@ -20,19 +20,19 @@ export default function DataCheckboxOption({
       aria-checked={checked}
       disabled={disabled}
       onClick={onChange}
-      className="flex shrink-0 items-center gap-2 rounded-xl px-1 py-1 text-left transition-colors hover:bg-black/[.06] disabled:pointer-events-none disabled:opacity-40 dark:hover:bg-white/[.08]"
+      className="flex shrink-0 items-center gap-2 rounded-xl px-1 py-1 text-left transition-colors hover:bg-[var(--hover)] disabled:pointer-events-none disabled:opacity-40"
     >
       <span
         className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-md border transition-colors ${
           checked
-            ? "border-black bg-black dark:border-white dark:bg-white"
-            : "border-black/30 dark:border-white/40"
+            ? "border-[var(--accent)] bg-[var(--accent)]"
+            : "border-[var(--border)]"
         }`}
       >
         {checked && (
           <svg
             viewBox="0 0 12 12"
-            className="h-2.5 w-2.5 stroke-white dark:stroke-black"
+            className="h-2.5 w-2.5 stroke-white"
             fill="none"
             strokeWidth={2}
             strokeLinecap="round"
@@ -42,7 +42,7 @@ export default function DataCheckboxOption({
           </svg>
         )}
       </span>
-      <span className="text-xs whitespace-nowrap text-black/80 sm:text-sm dark:text-zinc-200">
+      <span className="text-xs whitespace-nowrap text-[var(--text-sub)] sm:text-sm">
         {label}
       </span>
     </button>

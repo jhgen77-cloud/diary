@@ -75,16 +75,16 @@ export default function DataRestorePanel() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <p className="text-xs text-black/70 sm:text-sm dark:text-zinc-300">
+      <p className="text-xs text-[var(--text-sub)] sm:text-sm">
         ZIP 및 XML 파일로 백업한 일기로부터 데이터를 가져와서 저장합니다. 파일
         선택창에서 여러 개의 파일을 드래그하거나 모두 선택하면 한 번에 가져옵니다.
       </p>
 
-      <div className="relative flex flex-col gap-2 rounded-2xl border border-black/[.06] p-3 pt-4 dark:border-white/[.08]">
-        <p className="absolute -top-2.5 left-3 bg-zinc-50 px-1 text-xs font-semibold text-black sm:text-sm dark:bg-zinc-900 dark:text-zinc-50">
+      <div className="relative flex flex-col gap-2 rounded-2xl border border-[var(--border)] p-3 pt-4">
+        <p className="absolute -top-2.5 left-3 bg-[var(--card)] px-1 text-xs font-semibold text-[var(--text)] sm:text-sm">
           가져오기 옵션 선택
         </p>
-        <p className="text-xs text-black/60 sm:text-sm dark:text-zinc-400">
+        <p className="text-xs text-[var(--text-sub)] sm:text-sm">
           같은 날짜의 일기가 존재하는 경우 처리 방법을 선택하세요.
         </p>
         <div role="radiogroup" aria-label="가져오기 옵션" className="flex flex-col">
@@ -100,7 +100,7 @@ export default function DataRestorePanel() {
         <button
           type="button"
           onClick={handleImportClick}
-          className="mt-1 self-end rounded-full border border-black/10 px-4 py-1.5 text-xs text-black/70 transition-colors hover:bg-black/[.06] sm:text-sm dark:border-white/15 dark:text-zinc-300 dark:hover:bg-white/[.08]"
+          className="mt-1 self-end rounded-full border border-[var(--border)] px-4 py-1.5 text-xs text-[var(--text-sub)] transition-colors hover:bg-[var(--hover)] sm:text-sm"
         >
           가져오기
         </button>

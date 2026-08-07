@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import SettingsButton from "@/components/SettingsButton";
+import InfoButton from "@/components/InfoButton";
 import DiaryMenuList, {
   type DiaryMenuListItem,
 } from "@/components/DiaryMenuList";
@@ -30,11 +31,16 @@ const menuItems: DiaryMenuListItem[] = [
 
 export default function Home() {
   return (
-    <div className="flex h-dvh justify-center overflow-hidden bg-zinc-100 p-4 dark:bg-zinc-950 sm:p-6">
-      <div className="relative flex w-full max-w-3xl flex-col rounded-3xl border border-black/10 bg-zinc-50 p-4 shadow-sm sm:p-6 dark:border-white/15 dark:bg-black">
-        <SettingsButton />
+    <div className="flex h-dvh justify-center overflow-hidden bg-[var(--background)] p-4 sm:p-6">
+      <div className="relative flex w-full max-w-3xl flex-col rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 sm:p-6">
+        {/* settings.png 오른쪽에 info.png가 나란히 오도록(요구사항) 두 아이콘을
+           한 그룹으로 묶어 우측 상단에 배치합니다. */}
+        <div className="absolute top-4 right-4 flex items-center gap-2 sm:top-6 sm:right-6">
+          <SettingsButton />
+          <InfoButton />
+        </div>
         <Header />
-        <div className="mx-auto my-2 h-px w-full max-w-sm shrink-0 bg-black/10 sm:my-3 dark:bg-white/15" />
+        <div className="mx-auto my-2 h-px w-full max-w-sm shrink-0 bg-[var(--border)] sm:my-3" />
         <main className="flex min-h-0 w-full flex-1 justify-center">
           <DiaryMenuList items={menuItems} />
         </main>

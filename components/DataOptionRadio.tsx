@@ -17,20 +17,20 @@ export default function DataOptionRadio({
       role="radio"
       aria-checked={selected}
       onClick={onSelect}
-      className="flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-black/[.06] dark:hover:bg-white/[.08]"
+      className="flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-[var(--hover)]"
     >
       <span
         className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors ${
           selected
-            ? "border-black bg-black dark:border-white dark:bg-white"
-            : "border-black/30 dark:border-white/40"
+            ? "border-[var(--accent)] bg-[var(--accent)]"
+            : "border-[var(--border)]"
         }`}
       >
         {selected && (
-          <span className="h-1.5 w-1.5 rounded-full bg-white dark:bg-black" />
+          <span className="h-1.5 w-1.5 rounded-full bg-white" />
         )}
       </span>
-      <span className="text-xs text-black/80 sm:text-sm dark:text-zinc-200">
+      <span className="text-xs text-[var(--text-sub)] sm:text-sm">
         {label}
       </span>
     </button>

@@ -3,8 +3,8 @@
  * 없고, 현재 위치를 알리는 라벨로만 둡니다. */
 export default function SettingsSidebar() {
   return (
-    <aside className="my-2 flex w-24 shrink-0 flex-col items-center rounded-2xl border border-black/[.06] bg-black/[.03] p-3 dark:border-white/[.08] dark:bg-white/[.04] sm:w-28">
-      <span className="text-center text-xs font-medium whitespace-nowrap text-black/80 sm:text-sm dark:text-zinc-200">
+    <aside className="my-2 flex w-24 shrink-0 flex-col items-center rounded-2xl border border-[var(--border)] bg-[var(--hover)] p-3 sm:w-28">
+      <span className="text-center text-xs font-medium whitespace-nowrap text-[var(--text-sub)] sm:text-sm">
         기억의 편집
       </span>
     </aside>

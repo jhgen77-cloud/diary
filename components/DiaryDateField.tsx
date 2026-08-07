@@ -23,7 +23,7 @@ export default function DiaryDateField({
     <div className="flex items-center justify-between gap-2 px-3 py-1 sm:px-4">
       <div className="flex items-center gap-2">
         <FieldLabel>날짜</FieldLabel>
-        <span className="text-xs text-black sm:text-sm dark:text-zinc-50">
+        <span className="text-xs text-[var(--text)] sm:text-sm">
           {value.getFullYear()}년 {value.getMonth() + 1}월 {value.getDate()}일
           ({WEEKDAYS_KO[value.getDay()]})
         </span>
@@ -33,7 +33,7 @@ export default function DiaryDateField({
           type="button"
           onClick={() => setIsPickerOpen((prev) => !prev)}
           aria-label="달력 열기"
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/[.06] sm:h-7 sm:w-7 dark:hover:bg-white/[.08]"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--hover)] sm:h-7 sm:w-7"
         >
           <span className="relative aspect-square h-4 w-4 sm:h-5 sm:w-5">
             <Image

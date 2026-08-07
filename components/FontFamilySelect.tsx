@@ -59,16 +59,16 @@ export default function FontFamilySelect({ value, onChange }: FontFamilySelectPr
         onClick={() => setIsOpen((prev) => !prev)}
         aria-haspopup="true"
         aria-expanded={isOpen}
-        className="flex w-40 items-center justify-between gap-2 rounded-full border border-black/10 bg-white/60 px-3 py-1.5 text-left transition-colors hover:bg-black/[.06] sm:w-48 dark:border-white/15 dark:bg-white/[.04] dark:hover:bg-white/[.08]"
+        className="flex w-40 items-center justify-between gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-left transition-colors hover:bg-[var(--hover)] sm:w-48"
       >
         <span
-          className="truncate text-xs text-black/80 sm:text-sm dark:text-zinc-200"
+          className="truncate text-xs text-[var(--text-sub)] sm:text-sm"
           style={{ fontFamily: FONT_FAMILY_CSS[value] }}
         >
           {FONT_FAMILY_LABELS[value]}
         </span>
         <span
-          className={`shrink-0 text-[0.6rem] text-black/50 transition-transform sm:text-xs dark:text-zinc-400 ${
+          className={`shrink-0 text-[0.6rem] text-[var(--text-sub)] transition-transform sm:text-xs ${
             isOpen ? "rotate-180" : ""
           }`}
         >
@@ -78,7 +78,7 @@ export default function FontFamilySelect({ value, onChange }: FontFamilySelectPr
       {isOpen && (
         <div
           aria-label="폰트명 선택"
-          className="absolute top-full left-0 z-10 mt-1 flex w-40 flex-col rounded-xl border border-black/10 bg-zinc-50 p-1 shadow-lg sm:w-48 dark:border-white/15 dark:bg-zinc-900"
+          className="absolute top-full left-0 z-10 mt-1 flex w-40 flex-col rounded-xl border border-[var(--border)] bg-[var(--card)] p-1 sm:w-48"
         >
           {FONT_FAMILY_OPTIONS.map((option) => (
             <DataOptionRadio

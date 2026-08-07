@@ -49,7 +49,7 @@ export default function DiaryWeatherField({
           onClick={() => setIsOpen((prev) => !prev)}
           aria-label="날씨 선택"
           aria-expanded={isOpen}
-          className="flex h-5 w-full items-center justify-end gap-1 rounded-xl border border-black/[.06] px-2 transition-colors hover:bg-black/[.06] sm:h-6 sm:px-2.5 dark:border-white/[.08] dark:hover:bg-white/[.08]"
+          className="flex h-5 w-full items-center justify-end gap-1 rounded-xl border border-[var(--border)] px-2 transition-colors hover:bg-[var(--hover)] sm:h-6 sm:px-2.5"
         >
           {value ? (
             <span className="relative aspect-square h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4">
@@ -61,12 +61,12 @@ export default function DiaryWeatherField({
               />
             </span>
           ) : (
-            <span className="text-[0.65rem] whitespace-nowrap text-black/60 sm:text-xs dark:text-zinc-400">
+            <span className="text-[0.65rem] whitespace-nowrap text-[var(--text-sub)] sm:text-xs">
               [선택안함]
             </span>
           )}
           <span
-            className={`text-[0.55rem] text-black/50 transition-transform sm:text-[0.6rem] dark:text-zinc-400 ${
+            className={`text-[0.55rem] text-[var(--text-sub)] transition-transform sm:text-[0.6rem] ${
               isOpen ? "rotate-180" : ""
             }`}
           >
@@ -74,7 +74,7 @@ export default function DiaryWeatherField({
           </span>
         </button>
         {isOpen && (
-          <div className="absolute top-full right-0 z-10 mt-1 flex flex-col items-center gap-0.5 rounded-xl border border-black/10 bg-zinc-50 p-1.5 shadow-lg dark:border-white/15 dark:bg-zinc-900">
+          <div className="absolute top-full right-0 z-10 mt-1 flex flex-col items-center gap-0.5 rounded-xl border border-[var(--border)] bg-[var(--card)] p-1.5">
             <button
               type="button"
               onClick={() => {
@@ -85,8 +85,8 @@ export default function DiaryWeatherField({
               aria-pressed={value === null}
               className={`flex h-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[0.6rem] whitespace-nowrap transition-transform active:scale-90 sm:h-6 sm:text-[0.65rem] ${
                 value === null
-                  ? "bg-black/[.08] text-black ring-1 ring-black/30 dark:bg-white/[.12] dark:text-zinc-50 dark:ring-white/40"
-                  : "text-black/60 hover:bg-black/[.06] dark:text-zinc-400 dark:hover:bg-white/[.08]"
+                  ? "bg-[var(--accent)]/10 text-[var(--text)] ring-1 ring-[var(--accent)]/40"
+                  : "text-[var(--text-sub)] hover:bg-[var(--hover)]"
               }`}
             >
               선택안함

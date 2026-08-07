@@ -30,7 +30,7 @@ export default function DiaryContentField({
       style={{
         backgroundColor: backgroundType === "solid" ? backgroundColor : undefined,
       }}
-      className="flex min-h-0 flex-1 flex-col rounded-2xl border border-black/[.06] p-3 sm:p-4 dark:border-white/[.08]"
+      className="flex min-h-0 flex-1 flex-col rounded-2xl border border-[var(--border)] p-3 sm:p-4"
     >
       <textarea
         value={value}
@@ -42,7 +42,7 @@ export default function DiaryContentField({
           color: fontColor,
           textAlign,
         }}
-        className="min-h-0 flex-1 resize-none bg-transparent text-sm text-black outline-none placeholder:text-black/40 sm:text-base dark:text-zinc-50 dark:placeholder:text-zinc-500"
+        className="min-h-0 flex-1 resize-none bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--placeholder)] sm:text-base"
       />
     </div>
   );

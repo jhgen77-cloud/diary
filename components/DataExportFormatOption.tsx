@@ -27,24 +27,24 @@ export default function DataExportFormatOption({
         role="radio"
         aria-checked={selected}
         onClick={onSelect}
-        className="flex w-full items-start gap-2.5 rounded-xl px-2 py-1 text-left transition-colors hover:bg-black/[.06] dark:hover:bg-white/[.08]"
+        className="flex w-full items-start gap-2.5 rounded-xl px-2 py-1 text-left transition-colors hover:bg-[var(--hover)]"
       >
         <span
           className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors ${
             selected
-              ? "border-black bg-black dark:border-white dark:bg-white"
-              : "border-black/30 dark:border-white/40"
+              ? "border-[var(--accent)] bg-[var(--accent)]"
+              : "border-[var(--border)]"
           }`}
         >
           {selected && (
-            <span className="h-1.5 w-1.5 rounded-full bg-white dark:bg-black" />
+            <span className="h-1.5 w-1.5 rounded-full bg-white" />
           )}
         </span>
         <span className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-xs font-medium text-black sm:text-sm dark:text-zinc-50">
+          <span className="text-xs font-medium text-[var(--text)] sm:text-sm">
             {label}
           </span>
-          <span className="text-[0.7rem] whitespace-nowrap text-black/60 sm:text-xs dark:text-zinc-400">
+          <span className="text-[0.7rem] whitespace-nowrap text-[var(--text-sub)] sm:text-xs">
             {description}
           </span>
         </span>

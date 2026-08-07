@@ -16,7 +16,7 @@ import {
 // 세 버튼 모두 색으로 구분하지 않고(요구사항) 같은 중립 스타일을 씁니다 —
 // DataManager의 "닫기" 버튼과 같은 톤.
 const dialogButtonClass =
-  "rounded-full border border-black/10 px-5 py-1.5 text-xs text-black/70 transition-colors hover:bg-black/[.06] sm:text-sm dark:border-white/15 dark:text-zinc-300 dark:hover:bg-white/[.08]";
+  "rounded-full border border-[var(--border)] px-5 py-1.5 text-xs text-[var(--text-sub)] transition-colors hover:bg-[var(--hover)] sm:text-sm";
 
 /** 환경 설정 모달의 본문. DataManager와 같은 레이아웃(좌측 사이드바 + 본문)을
  * 재사용하되, 하단은 단순 닫기 버튼 대신 확인/취소/적용 3버튼입니다(요구사항).
@@ -67,7 +67,7 @@ export default function SettingsManager() {
         </div>
       </div>
 
-      <div className="flex shrink-0 justify-end gap-2 border-t border-black/10 pt-3 dark:border-white/15">
+      <div className="flex shrink-0 justify-end gap-2 border-t border-[var(--border)] pt-3">
         <button type="button" onClick={handleConfirm} className={dialogButtonClass}>
           확인
         </button>

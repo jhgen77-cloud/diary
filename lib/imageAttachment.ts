@@ -45,6 +45,14 @@ export function fileToStoredImage(file: File): Promise<string> {
         reject(new Error("2D 캔버스 컨텍스트를 가져오지 못했습니다."));
         return;
       }
+      // 캔버스는 기본적으로 투명(RGBA 0,0,0,0)합니다. JPEG는 알파 채널이 없어,
+      // 투명 PNG 등을 그대로 그린 뒤 toDataURL("image/jpeg")로 내보내면 브라우저가
+      // 칠해지지 않은(투명) 픽셀을 검정으로 채워버립니다 — 배경설정으로 본문에
+      // 색이 있는 배경을 두면 이 검게 칠해진 영역이 또렷이 보여 이미지가 "블라인드
+      // 처리"된 것처럼 보였던 원인입니다(실제로 재현해 확인함). 흰색으로 먼저
+      // 채운 뒤 그 위에 그려 투명 영역이 검정 대신 흰색이 되게 합니다.
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
       resolve(canvas.toDataURL("image/jpeg", PERSISTED_IMAGE_QUALITY));
     };

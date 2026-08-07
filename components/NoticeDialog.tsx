@@ -56,7 +56,7 @@ export default function NoticeDialog({
       className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
     >
       <div
-        className={`flex w-full flex-col items-center gap-5 rounded-2xl border border-black/10 bg-zinc-50 p-6 shadow-lg dark:border-white/15 dark:bg-zinc-900 ${
+        className={`flex w-full flex-col items-center gap-5 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 ${
           wide ? "max-w-md" : "max-w-xs"
         }`}
       >
@@ -64,7 +64,7 @@ export default function NoticeDialog({
           <span className="relative h-6 w-6 shrink-0">
             <Image src={icon} alt="" fill className="object-contain" />
           </span>
-          <p className="text-sm whitespace-pre-line text-black sm:text-base dark:text-zinc-50">
+          <p className="text-sm whitespace-pre-line text-[var(--text)] sm:text-base">
             {message}
           </p>
         </div>
@@ -74,7 +74,7 @@ export default function NoticeDialog({
               <button
                 type="button"
                 onClick={onConfirm}
-                className="rounded-full bg-black px-4 py-1.5 text-sm text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-black"
+                className="rounded-full bg-[var(--accent)] px-4 py-1.5 text-sm text-white transition-colors hover:bg-[var(--accent-hover)]"
               >
                 {confirmLabel}
               </button>
@@ -83,7 +83,7 @@ export default function NoticeDialog({
               <button
                 type="button"
                 onClick={onCancel}
-                className="rounded-full border border-black/10 px-4 py-1.5 text-sm text-black/70 transition-colors hover:bg-black/[.06] dark:border-white/15 dark:text-zinc-300 dark:hover:bg-white/[.08]"
+                className="rounded-full border border-[var(--border)] px-4 py-1.5 text-sm text-[var(--text-sub)] transition-colors hover:bg-[var(--hover)]"
               >
                 {cancelLabel}
               </button>
@@ -92,7 +92,7 @@ export default function NoticeDialog({
               <button
                 type="button"
                 onClick={onConfirm}
-                className="rounded-full bg-black px-4 py-1.5 text-sm text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-black"
+                className="rounded-full bg-[var(--accent)] px-4 py-1.5 text-sm text-white transition-colors hover:bg-[var(--accent-hover)]"
               >
                 {confirmLabel}
               </button>

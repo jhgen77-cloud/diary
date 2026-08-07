@@ -9,7 +9,7 @@ import type { EnvironmentSettings } from "@/lib/environmentSettings";
 // 다른 "폰트명"/"색상"도 같은 크기의 박스로 보이게 합니다(text-center로 짧은
 // 글자는 가운데 정렬).
 const rowLabelClass =
-  "w-20 shrink-0 rounded-lg border border-black/10 px-2 py-1 text-center text-xs font-medium whitespace-nowrap text-black/70 sm:w-24 sm:px-3 sm:py-1.5 sm:text-sm dark:border-white/15 dark:text-zinc-300";
+  "w-20 shrink-0 rounded-lg border border-[var(--border)] px-2 py-1 text-center text-xs font-medium whitespace-nowrap text-[var(--text-sub)] sm:w-24 sm:px-3 sm:py-1.5 sm:text-sm";
 
 interface FontSettingsPanelProps {
   settings: EnvironmentSettings;
@@ -23,8 +23,8 @@ interface FontSettingsPanelProps {
  * (요구사항). */
 export default function FontSettingsPanel({ settings, onChange }: FontSettingsPanelProps) {
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-black/[.06] p-3 dark:border-white/[.08]">
-      <p className="text-xs font-semibold text-black sm:text-sm dark:text-zinc-50">
+    <div className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] p-3">
+      <p className="text-xs font-semibold text-[var(--text)] sm:text-sm">
         폰트설정
       </p>
 

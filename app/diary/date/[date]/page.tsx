@@ -13,7 +13,7 @@ export default async function DiaryDatePage({
 
   return (
     <Modal title={date} closeHref="/">
-      <p className="text-lg text-black dark:text-zinc-50">아직 준비 중입니다.</p>
+      <p className="text-lg text-[var(--text)]">아직 준비 중입니다.</p>
     </Modal>
   );
 }

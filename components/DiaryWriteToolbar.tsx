@@ -20,7 +20,7 @@ interface DiaryWriteToolbarProps {
 }
 
 const actionButtonClass =
-  "flex flex-col items-center gap-0.5 rounded-xl px-2.5 py-1.5 transition-colors hover:bg-black/[.06] active:scale-95 dark:hover:bg-white/[.08]";
+  "flex flex-col items-center gap-0.5 rounded-xl px-2.5 py-1.5 transition-colors hover:bg-[var(--hover)] active:scale-95";
 
 export default function DiaryWriteToolbar({
   onSave,
@@ -40,7 +40,7 @@ export default function DiaryWriteToolbar({
             className="object-contain"
           />
         </span>
-        <span className="text-[0.65rem] text-black/70 sm:text-xs dark:text-zinc-300">
+        <span className="text-[0.65rem] text-[var(--text-sub)] sm:text-xs">
           저장
         </span>
       </button>
@@ -53,7 +53,7 @@ export default function DiaryWriteToolbar({
             className="object-contain"
           />
         </span>
-        <span className="text-[0.65rem] text-black/70 sm:text-xs dark:text-zinc-300">
+        <span className="text-[0.65rem] text-[var(--text-sub)] sm:text-xs">
           달력
         </span>
       </Link>
@@ -66,7 +66,7 @@ export default function DiaryWriteToolbar({
             className="object-contain"
           />
         </span>
-        <span className="text-[0.65rem] text-black/70 sm:text-xs dark:text-zinc-300">
+        <span className="text-[0.65rem] text-[var(--text-sub)] sm:text-xs">
           삭제
         </span>
       </button>
@@ -83,7 +83,7 @@ export default function DiaryWriteToolbar({
             className="object-contain"
           />
         </span>
-        <span className="text-[0.65rem] text-black/70 sm:text-xs dark:text-zinc-300">
+        <span className="text-[0.65rem] text-[var(--text-sub)] sm:text-xs">
           첨부
         </span>
       </button>

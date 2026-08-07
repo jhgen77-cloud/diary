@@ -351,7 +351,7 @@ export default function DiaryWriteForm() {
             saved={saved}
             hasAttachment={hasAttachment}
           />
-          <div className="flex shrink-0 flex-col divide-y divide-black/[.06] rounded-2xl border border-black/[.06] dark:divide-white/[.08] dark:border-white/[.08]">
+          <div className="flex shrink-0 flex-col divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)]">
             <DiaryDateField value={date} onChange={setDate} />
             <div className="flex flex-wrap items-center gap-2 px-3 py-1 sm:gap-3 sm:px-4">
               <DiaryMoodField value={mood} onChange={setMood} />

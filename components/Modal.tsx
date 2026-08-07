@@ -32,7 +32,7 @@ const SIZE_CLASSES = {
 } as const;
 
 const controlButtonClass =
-  "flex h-7 w-7 items-center justify-center rounded-full text-black/60 transition-colors hover:bg-black/[.06] hover:text-black dark:text-zinc-300 dark:hover:bg-white/[.08] dark:hover:text-zinc-50";
+  "flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-sub)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--text)]";
 
 interface DragState {
   startX: number;
@@ -143,7 +143,7 @@ export default function Modal({
           transform: `translate(${offset.x}px, ${offset.y}px)`,
           ...(heightVh && !isMinimized ? { height: `${heightVh}vh` } : {}),
         }}
-        className={`flex w-full flex-col rounded-3xl border border-black/10 bg-zinc-50 shadow-lg dark:border-white/15 dark:bg-zinc-900 ${
+        className={`flex w-full flex-col rounded-3xl border border-[var(--border)] bg-[var(--card)] ${
           overlay ? "" : "pointer-events-auto"
         } ${dimensionClass}`}
       >
@@ -151,7 +151,7 @@ export default function Modal({
           onPointerDown={handleHeaderPointerDown}
           className="flex shrink-0 cursor-grab items-center justify-between gap-4 px-6 py-4 touch-none select-none active:cursor-grabbing sm:px-8"
         >
-          <span className="truncate text-lg font-semibold text-black dark:text-zinc-50 sm:text-xl">
+          <span className="truncate text-lg font-semibold text-[var(--text)] sm:text-xl">
             {title}
           </span>
           <div className="flex shrink-0 items-center gap-2">
@@ -189,7 +189,7 @@ export default function Modal({
         </header>
         {!isMinimized && (
           <>
-            <div className="mx-6 h-px shrink-0 bg-black/10 sm:mx-8 dark:bg-white/15" />
+            <div className="mx-6 h-px shrink-0 bg-[var(--border)] sm:mx-8" />
             <div className="flex min-h-0 flex-1 flex-col px-6 pb-6 sm:px-8 sm:pb-8">
               {children}
             </div>

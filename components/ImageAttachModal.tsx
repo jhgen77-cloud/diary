@@ -31,10 +31,10 @@ interface ImageAttachModalProps {
 }
 
 const toolButtonClass =
-  "group relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/[.06] active:scale-90 disabled:pointer-events-none disabled:opacity-30 sm:h-9 sm:w-9 dark:hover:bg-white/[.08]";
+  "group relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--hover)] active:scale-90 disabled:pointer-events-none disabled:opacity-30 sm:h-9 sm:w-9";
 
 const tooltipClass =
-  "pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 rounded-md bg-black/80 px-1.5 py-0.5 text-[0.65rem] whitespace-nowrap text-white opacity-0 transition-opacity group-hover:opacity-100 dark:bg-white/90 dark:text-black";
+  "pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 rounded-md bg-[var(--text)] px-1.5 py-0.5 text-[0.65rem] whitespace-nowrap text-white opacity-0 transition-opacity group-hover:opacity-100";
 
 export default function ImageAttachModal({
   onClose,
@@ -93,7 +93,7 @@ export default function ImageAttachModal({
     >
       <div className="relative flex min-h-0 flex-1 flex-col gap-3">
         {warning && (
-          <div className="pointer-events-none absolute top-0 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-red-500/95 px-3 py-1 text-xs font-medium whitespace-nowrap text-white shadow-lg">
+          <div className="pointer-events-none absolute top-0 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--error)] px-3 py-1 text-xs font-medium whitespace-nowrap text-white">
             {warning}
           </div>
         )}
@@ -166,7 +166,7 @@ export default function ImageAttachModal({
             </span>
             <span className={tooltipClass}>축소</span>
           </button>
-          <span className="ml-1 text-[0.65rem] text-black/40 sm:text-xs dark:text-zinc-500">
+          <span className="ml-1 text-[0.65rem] text-[var(--text-sub)] sm:text-xs">
             {images.length}/{MAX_IMAGES}
           </span>
         </div>
@@ -183,12 +183,12 @@ export default function ImageAttachModal({
             images.length === 0 ? "items-center justify-center" : "items-start justify-start"
           } ${
             isDragOver
-              ? "border-black/40 bg-black/[.04] dark:border-white/40 dark:bg-white/[.06]"
-              : "border-black/[.08] dark:border-white/[.12]"
+              ? "border-[var(--accent)] bg-[var(--accent)]/10"
+              : "border-[var(--border)]"
           }`}
         >
           {images.length === 0 ? (
-            <p className="pointer-events-none text-center text-sm text-black/40 sm:text-base dark:text-zinc-500">
+            <p className="pointer-events-none text-center text-sm text-[var(--text-sub)] sm:text-base">
               이미지를 드래그해서 추가하세요.
             </p>
           ) : (
@@ -205,7 +205,7 @@ export default function ImageAttachModal({
                     aria-pressed={isSelected}
                     className={`flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl transition-all ${
                       isSelected
-                        ? "bg-black/10 opacity-100 dark:bg-white/10"
+                        ? "bg-black/10 opacity-100"
                         : "opacity-80 hover:opacity-100"
                     }`}
                   >

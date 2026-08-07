@@ -37,11 +37,11 @@ export default function DataManager() {
         </div>
       </div>
 
-      <div className="flex shrink-0 justify-end border-t border-black/10 pt-3 dark:border-white/15">
+      <div className="flex shrink-0 justify-end border-t border-[var(--border)] pt-3">
         <button
           type="button"
           onClick={() => router.back()}
-          className="rounded-full border border-black/10 px-5 py-1.5 text-xs text-black/70 transition-colors hover:bg-black/[.06] sm:text-sm dark:border-white/15 dark:text-zinc-300 dark:hover:bg-white/[.08]"
+          className="rounded-full border border-[var(--border)] px-5 py-1.5 text-xs text-[var(--text-sub)] transition-colors hover:bg-[var(--hover)] sm:text-sm"
         >
           닫기
         </button>

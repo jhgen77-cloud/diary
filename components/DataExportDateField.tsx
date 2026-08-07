@@ -32,15 +32,15 @@ export default function DataExportDateField({
 
   return (
     <div className="flex shrink-0 flex-nowrap items-center gap-1.5">
-      <span className="shrink-0 rounded-lg border border-black/10 px-4 py-1 text-center text-xs font-medium whitespace-nowrap text-black/70 sm:px-5 sm:py-1.5 sm:text-sm dark:border-white/15 dark:text-zinc-300">
+      <span className="shrink-0 rounded-lg border border-[var(--border)] px-4 py-1 text-center text-xs font-medium whitespace-nowrap text-[var(--text-sub)] sm:px-5 sm:py-1.5 sm:text-sm">
         {label}
       </span>
       <div
-        className={`relative flex min-w-[10.5rem] items-center justify-between gap-2 rounded-full border border-black/10 bg-white/60 py-0.5 pr-1.5 pl-3.5 transition-opacity sm:min-w-[13rem] sm:py-1 dark:border-white/15 dark:bg-white/[.04] ${
+        className={`relative flex min-w-[10.5rem] items-center justify-between gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] py-0.5 pr-1.5 pl-3.5 transition-opacity sm:min-w-[13rem] sm:py-1 ${
           disabled ? "opacity-40" : ""
         }`}
       >
-        <span className="truncate text-xs text-black sm:text-sm dark:text-zinc-50">
+        <span className="truncate text-xs text-[var(--text)] sm:text-sm">
           {date.getFullYear()}년 {date.getMonth() + 1}월 {date.getDate()}일 (
           {WEEKDAYS_KO[date.getDay()]})
         </span>
@@ -49,7 +49,7 @@ export default function DataExportDateField({
           onClick={() => setIsPickerOpen((prev) => !prev)}
           disabled={disabled}
           aria-label={`${label} 달력 열기`}
-          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/[.06] disabled:pointer-events-none sm:h-6 sm:w-6 dark:hover:bg-white/[.08]"
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--hover)] disabled:pointer-events-none sm:h-6 sm:w-6"
         >
           <span className="relative aspect-square h-3.5 w-3.5 sm:h-4 sm:w-4">
             <Image src={calendarIcon} alt="달력" fill className="object-contain" />

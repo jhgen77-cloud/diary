@@ -7,7 +7,7 @@ interface DiaryCalendarDateSearchProps {
 }
 
 const dateInputClass =
-  "h-8 min-w-0 rounded-full border border-black/10 bg-white/60 px-2 text-center text-sm text-black outline-none focus:border-black/30 sm:h-9 sm:text-base dark:border-white/15 dark:bg-white/[.04] dark:text-zinc-50 dark:focus:border-white/30";
+  "h-8 min-w-0 rounded-full border border-[var(--border)] bg-[var(--card)] px-2 text-center text-sm text-[var(--text)] outline-none focus:border-[var(--accent)] sm:h-9 sm:text-base";
 
 export default function DiaryCalendarDateSearch({
   onSearch,
@@ -51,7 +51,7 @@ export default function DiaryCalendarDateSearch({
         aria-label="년"
         className={`${dateInputClass} w-16 sm:w-20`}
       />
-      <span className="text-sm text-black/60 sm:text-base dark:text-zinc-400">
+      <span className="text-sm text-[var(--text-sub)] sm:text-base">
         년
       </span>
       <input
@@ -63,7 +63,7 @@ export default function DiaryCalendarDateSearch({
         aria-label="월"
         className={`${dateInputClass} w-12 sm:w-14`}
       />
-      <span className="text-sm text-black/60 sm:text-base dark:text-zinc-400">
+      <span className="text-sm text-[var(--text-sub)] sm:text-base">
         월
       </span>
       <input
@@ -75,7 +75,7 @@ export default function DiaryCalendarDateSearch({
         aria-label="일"
         className={`${dateInputClass} w-12 sm:w-14`}
       />
-      <span className="text-sm text-black/60 sm:text-base dark:text-zinc-400">
+      <span className="text-sm text-[var(--text-sub)] sm:text-base">
         일
       </span>
       <button
