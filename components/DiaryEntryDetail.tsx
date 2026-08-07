@@ -77,7 +77,7 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
 
   return (
     <>
-      <Modal title="그날을 거닐다" size="lg" heightVh={61}>
+      <Modal title="그날을 거닐다" size="lg" tall>
         <div className="flex min-h-0 flex-1 flex-col gap-2">
           <div className="flex shrink-0 items-start justify-between gap-3 rounded-2xl border border-black/[.06] p-2 sm:p-2.5 dark:border-white/[.08]">
             {/* 좌측: 기분/날씨 아이콘 → 제목, 우측: 삭제/수정 아이콘 → 날짜 — 같은
@@ -146,10 +146,18 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
             </div>
           </div>
 
+          {/* 이미지+본문은 안쪽 스크롤 영역으로 묶었습니다(이전엔 본문 텍스트만
+             별도의 flex-1 영역에 욱여넣어서, 고정 높이 이미지가 공간을 차지하면
+             본문 영역이 0에 가깝게 눌려 텍스트가 안 보이는 문제가 있었습니다).
+             작성 일시 캡션은 그 바깥(shrink-0)에 따로 둬서, 본문이 짧을 때도 늘
+             박스 좌측 하단에 고정되고, 내용이 길어 스크롤될 때도 함께 스크롤되어
+             사라지지 않고 항상 보입니다. */}
           <div className="flex min-h-0 flex-1 flex-col gap-2 rounded-2xl border border-black/[.06] p-3 sm:p-4 dark:border-white/[.08]">
-            <DiaryEntryImages images={entry.images} />
-            <div className="min-h-0 flex-1 overflow-y-auto text-sm whitespace-pre-wrap text-black sm:text-base dark:text-zinc-50">
-              {entry.content}
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
+              <DiaryEntryImages images={entry.images} />
+              <div className="text-sm whitespace-pre-wrap text-black sm:text-base dark:text-zinc-50">
+                {entry.content}
+              </div>
             </div>
             <p className="shrink-0 pt-2 text-left text-[0.7rem] text-black/40 sm:text-xs dark:text-zinc-500">
               {createdLabel}
