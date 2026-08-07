@@ -27,7 +27,7 @@ export default function DataExportFormatOption({
         role="radio"
         aria-checked={selected}
         onClick={onSelect}
-        className="flex w-full items-start gap-2.5 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-black/[.06] dark:hover:bg-white/[.08]"
+        className="flex w-full items-start gap-2.5 rounded-xl px-2 py-1 text-left transition-colors hover:bg-black/[.06] dark:hover:bg-white/[.08]"
       >
         <span
           className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors ${

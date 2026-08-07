@@ -15,7 +15,7 @@ const SPLIT_OPTIONS: SplitOption[] = [
   { key: "single", label: "하나의 파일로 내보내기" },
   { key: "year", label: "연도별로 파일 생성" },
   { key: "year-month", label: "연,월별로 파일 생성" },
-  { key: "date", label: "날짜별로 파일 생성" },
+  { key: "date", label: "날짜,시간별로 파일 생성" },
 ];
 
 const SPLIT_LABELS = Object.fromEntries(

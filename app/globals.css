@@ -24,3 +24,13 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* 스크롤은 그대로 되지만(휠/터치/키보드) 스크롤바만 시각적으로 숨깁니다 —
+   DataManager의 본문 스크롤 영역(우측 가장자리 스크롤바)에 씁니다. */
+.scrollbar-hide {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* 구형 Edge/IE */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/최신 Edge */
+}

@@ -78,7 +78,7 @@ export default function DataResetPanel() {
               type="button"
               onClick={handleResetClick}
               disabled={!agreed}
-              className="shrink-0 rounded-full bg-black px-4 py-1.5 text-xs text-white transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-40 sm:text-sm dark:bg-white dark:text-black"
+              className="shrink-0 rounded-full border border-black/10 px-4 py-1.5 text-xs text-black/70 transition-colors hover:bg-black/[.06] disabled:pointer-events-none disabled:opacity-40 sm:text-sm dark:border-white/15 dark:text-zinc-300 dark:hover:bg-white/[.08]"
             >
               소멸
             </button>

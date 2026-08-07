@@ -31,7 +31,7 @@ export default function DataExportDateRangeSection({
   exporting,
 }: DataExportDateRangeSectionProps) {
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-black/[.06] p-3 dark:border-white/[.08]">
+    <div className="flex flex-col gap-1.5 rounded-2xl border border-black/[.06] p-2.5 dark:border-white/[.08]">
       <p className="text-xs font-semibold text-black sm:text-sm dark:text-zinc-50">
         일기 날짜 선택
       </p>
@@ -65,7 +65,7 @@ export default function DataExportDateRangeSection({
           type="button"
           onClick={onExport}
           disabled={exporting}
-          className="shrink-0 rounded-full bg-black px-4 py-1.5 text-xs text-white transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-40 sm:text-sm dark:bg-white dark:text-black"
+          className="shrink-0 rounded-full border border-black/10 px-4 py-1.5 text-xs text-black/70 transition-colors hover:bg-black/[.06] disabled:pointer-events-none disabled:opacity-40 sm:text-sm dark:border-white/15 dark:text-zinc-300 dark:hover:bg-white/[.08]"
         >
           {exporting ? "내보내는 중…" : "내보내기"}
         </button>
