@@ -34,6 +34,7 @@ import {
   useSavedDiaryEntry,
 } from "@/lib/savedDiaryEntries";
 import { useEnvironmentSettings } from "@/lib/environmentSettings";
+import { insertMemoryEntry } from "@/lib/memoryEntries";
 
 const WEEKDAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -228,6 +229,9 @@ export default function DiaryWriteForm() {
     const entry = await buildEntryFromState();
     addSavedDiaryEntry(entry);
     setSaved(true);
+    // Supabase의 "글 읽기 리스트"(memory_entries) 테이블에도 함께 추가합니다.
+    // 실패해도(네트워크 오류 등) 이미 반영된 로컬 저장은 그대로 둡니다.
+    void insertMemoryEntry(entry);
   }
 
   function handleDeleteClick() {

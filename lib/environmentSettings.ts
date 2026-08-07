@@ -4,8 +4,10 @@ import { useSyncExternalStore } from "react";
 
 /** 환경 설정(SettingsManager)이 쓰고, "시간을 붙잡다"(DiaryWriteForm)가 읽어서
  * 실제로 적용하는 공유 저장소. savedDiaryEntries.ts와 같은 패턴
- * (localStorage + useSyncExternalStore)을 그대로 씁니다 — 두 모달이 서로 다른
- * 라우트/컴포넌트 트리라 평범한 React state로는 값을 주고받을 수 없습니다. */
+ * (모듈 레벨 캐시 + useSyncExternalStore)을 그대로 씁니다 — 두 모달이 서로 다른
+ * 라우트/컴포넌트 트리라 평범한 React state로는 값을 주고받을 수 없습니다.
+ * Supabase 연동 전까지는 탭 세션 동안만 유지되는 메모리 상태입니다(예전에는
+ * localStorage 키 "diary:environmentSettings"에 영속했습니다). */
 
 export type FontFamilyKey = "system" | "sans" | "serif" | "mono" | "handwriting";
 export type TextAlignKey = "left" | "center" | "right" | "justify";
@@ -37,8 +39,7 @@ export interface DiaryContentStyle {
   backgroundColor: string;
 }
 
-const STORAGE_KEY = "diary:environmentSettings";
-const SCHEMA_VERSION = 1;
+const OLD_STORAGE_KEY = "diary:environmentSettings";
 
 const DEFAULT_SETTINGS: EnvironmentSettings = {
   fontFamily: "system",
@@ -49,95 +50,49 @@ const DEFAULT_SETTINGS: EnvironmentSettings = {
   backgroundColor: "#ffffff",
 };
 
-interface StoredPayload {
-  v: number;
-  settings: EnvironmentSettings;
-}
-
 const listeners = new Set<() => void>();
-let cachedRaw: string | null = null;
-let cachedSnapshot: EnvironmentSettings = DEFAULT_SETTINGS;
 
-function isValidSettings(value: unknown): value is EnvironmentSettings {
-  if (!value || typeof value !== "object") return false;
-  const v = value as Partial<EnvironmentSettings>;
-  return (
-    typeof v.fontFamily === "string" &&
-    typeof v.fontSize === "number" &&
-    typeof v.fontColor === "string" &&
-    typeof v.textAlign === "string" &&
-    typeof v.backgroundType === "string" &&
-    typeof v.backgroundColor === "string"
-  );
-}
+// DEFAULT_SETTINGS와 마찬가지로, 값이 바뀌지 않는 한 매번 같은 참조를
+// 유지해야 useSyncExternalStore가 무한 루프에 빠지지 않습니다.
+let settings: EnvironmentSettings = DEFAULT_SETTINGS;
 
-function parse(raw: string | null): EnvironmentSettings {
-  if (!raw) return DEFAULT_SETTINGS;
+// 이전 버전에서 남아있을 수 있는 local storage 데이터를 한 번 지웁니다(이
+// 모듈이 클라이언트에서 처음 로드될 때 1회 실행).
+if (typeof window !== "undefined") {
   try {
-    const parsed: unknown = JSON.parse(raw);
-    if (
-      parsed &&
-      typeof parsed === "object" &&
-      (parsed as StoredPayload).v === SCHEMA_VERSION &&
-      isValidSettings((parsed as StoredPayload).settings)
-    ) {
-      return (parsed as StoredPayload).settings;
-    }
-    return DEFAULT_SETTINGS;
+    window.localStorage.removeItem(OLD_STORAGE_KEY);
   } catch {
-    return DEFAULT_SETTINGS;
-  }
-}
-
-function persist(settings: EnvironmentSettings) {
-  const payload: StoredPayload = { v: SCHEMA_VERSION, settings };
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  } catch (error) {
-    console.error("환경 설정을 저장하지 못했습니다.", error);
+    // 접근 자체가 막힌 환경(프라이빗 모드 등)이면 지울 것도 없으니 무시합니다.
   }
 }
 
 function getSnapshot(): EnvironmentSettings {
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (raw !== cachedRaw) {
-    cachedRaw = raw;
-    cachedSnapshot = parse(raw);
-  }
-  return cachedSnapshot;
+  return settings;
 }
 
-// DEFAULT_SETTINGS는 모듈 최상단에서 한 번만 만들어진 동일 참조입니다 — 매번
-// 새 객체를 반환하면 useSyncExternalStore가 "getServerSnapshot should be
-// cached" 경고와 함께 무한 루프에 빠질 수 있습니다(savedDiaryEntries.ts에서
-// 실제로 겪었던 문제).
 function getServerSnapshot(): EnvironmentSettings {
   return DEFAULT_SETTINGS;
 }
 
 function subscribe(onStoreChange: () => void) {
   listeners.add(onStoreChange);
-  window.addEventListener("storage", onStoreChange);
   return () => {
     listeners.delete(onStoreChange);
-    window.removeEventListener("storage", onStoreChange);
   };
 }
 
 function notify() {
-  cachedRaw = null;
   listeners.forEach((listener) => listener());
 }
 
 /** 일부 값만 넘겨 갱신합니다(예: setEnvironmentSettings({ fontSize: 18 })). */
 export function setEnvironmentSettings(update: Partial<EnvironmentSettings>) {
   if (typeof window === "undefined") return;
-  const current = parse(window.localStorage.getItem(STORAGE_KEY));
-  persist({ ...current, ...update });
+  settings = { ...settings, ...update };
   notify();
 }
 
-/** 현재 환경 설정을 구독합니다. 값이 바뀌면(다른 탭 포함) 리렌더링됩니다. */
+/** 현재 환경 설정을 구독합니다. 값이 바뀌면 리렌더링됩니다. */
 export function useEnvironmentSettings(): EnvironmentSettings {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }

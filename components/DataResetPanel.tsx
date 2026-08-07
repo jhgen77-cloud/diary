@@ -52,7 +52,7 @@ export default function DataResetPanel() {
           </span>
         </Tooltip>
         <span className="truncate text-xs text-[var(--text-sub)] sm:text-sm">
-          (데이터베이스 미구현) 브라우저 로컬 저장소 · diary:savedEntries
+          (데이터베이스 미구현) 브라우저 메모리 · 새로고침 시 소실됨
         </span>
       </div>
 

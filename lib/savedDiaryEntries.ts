@@ -3,87 +3,33 @@
 import { useSyncExternalStore } from "react";
 import type { DiaryEntry } from "@/lib/mockDiaryEntries";
 
-const STORAGE_KEY = "diary:savedEntries";
-// 스키마 버전. 이전 버전으로 저장된(또는 개발 중 쌓인 임시) 데이터는 무시하고
-// 빈 목록에서 다시 시작하려면 이 값을 올리면 됩니다.
-// v2: DiaryEntry에 content/createdAt이 추가되어, 그 필드가 없던 이전 데이터를
-// 걸러내기 위해 올렸습니다(상세 보기에서 "NaN년 ..." 오류가 나던 원인).
-// v3: DiaryEntry에 images(첨부 이미지 data URL 목록)가 추가되었습니다.
-const SCHEMA_VERSION = 3;
-
-interface StoredPayload {
-  v: number;
-  entries: DiaryEntry[];
-}
+// Supabase 연동 전까지 쓰는 임시 저장소입니다. 예전에는 localStorage(키
+// "diary:savedEntries")에 영속했지만, 지금은 탭 세션 동안만 유지되는 메모리
+// 상태이며 새로고침하면 사라집니다 — Supabase 연동은 별도로 진행됩니다.
+const OLD_STORAGE_KEY = "diary:savedEntries";
 
 const listeners = new Set<() => void>();
 
-// 서버 렌더링 시(그리고 하이드레이션 중) 쓰는 빈 목록. useSyncExternalStore는
-// getServerSnapshot이 매번 같은 참조를 반환하길 요구합니다 — 호출마다 새
-// 배열([])을 만들어 반환하면 "매번 값이 바뀐 것"으로 보여, React가
-// "The result of getServerSnapshot should be cached to avoid an infinite
-// loop" 경고와 함께 무한 루프에 빠질 수 있습니다. 하나의 배열을 재사용해
-// 이를 피합니다.
+// useSyncExternalStore는 getServerSnapshot/getSnapshot이 값이 바뀌지 않는 한
+// 매번 같은 참조를 반환하길 요구합니다 — 호출마다 새 배열([])을 만들어
+// 반환하면 "매번 값이 바뀐 것"으로 보여 무한 루프에 빠질 수 있어, 하나의
+// 배열/변수를 재사용합니다.
 const EMPTY_ENTRIES: DiaryEntry[] = [];
 
-let cachedRaw: string | null = null;
-let cachedSnapshot: DiaryEntry[] = EMPTY_ENTRIES;
+let entries: DiaryEntry[] = EMPTY_ENTRIES;
 
-function isValidEntry(entry: unknown): entry is DiaryEntry {
-  if (!entry || typeof entry !== "object") return false;
-  const e = entry as Partial<DiaryEntry>;
-  return (
-    typeof e.id === "string" &&
-    typeof e.date === "string" &&
-    typeof e.title === "string" &&
-    typeof e.content === "string" &&
-    typeof e.createdAt === "string" &&
-    !Number.isNaN(new Date(e.createdAt).getTime()) &&
-    Array.isArray(e.images)
-  );
-}
-
-function parse(raw: string | null): DiaryEntry[] {
-  if (!raw) return [];
+// 이전 버전에서 남아있을 수 있는 local storage 데이터를 한 번 지웁니다(이
+// 모듈이 클라이언트에서 처음 로드될 때 1회 실행).
+if (typeof window !== "undefined") {
   try {
-    const parsed: unknown = JSON.parse(raw);
-    if (
-      parsed &&
-      typeof parsed === "object" &&
-      (parsed as StoredPayload).v === SCHEMA_VERSION &&
-      Array.isArray((parsed as StoredPayload).entries)
-    ) {
-      // 형식이 어긋난 항목(예: content/createdAt 누락)은 개별적으로 걸러냅니다.
-      return (parsed as StoredPayload).entries.filter(isValidEntry);
-    }
-    // 버전이 다르거나(예전 형식 포함) 형태가 다르면 임시 데이터로 간주하고 비웁니다.
-    return [];
+    window.localStorage.removeItem(OLD_STORAGE_KEY);
   } catch {
-    return [];
-  }
-}
-
-/** localStorage에 실제로 쓰기를 시도합니다. 저장 용량 초과 등으로 실패해도 앱이
- * 죽지 않도록 예외를 여기서 잡고, 성공 여부만 boolean으로 알려줍니다(호출부가
- * 실패를 알아야 하는 경우 — 예: 가져오기 — 이 값을 보고 사용자에게 알릴 수 있게). */
-function persist(entries: DiaryEntry[]): boolean {
-  const payload: StoredPayload = { v: SCHEMA_VERSION, entries };
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-    return true;
-  } catch (error) {
-    console.error("일기 저장 공간이 부족합니다.", error);
-    return false;
+    // 접근 자체가 막힌 환경(프라이빗 모드 등)이면 지울 것도 없으니 무시합니다.
   }
 }
 
 function getSnapshot(): DiaryEntry[] {
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (raw !== cachedRaw) {
-    cachedRaw = raw;
-    cachedSnapshot = parse(raw);
-  }
-  return cachedSnapshot;
+  return entries;
 }
 
 function getServerSnapshot(): DiaryEntry[] {
@@ -92,41 +38,35 @@ function getServerSnapshot(): DiaryEntry[] {
 
 function subscribe(onStoreChange: () => void) {
   listeners.add(onStoreChange);
-  window.addEventListener("storage", onStoreChange);
   return () => {
     listeners.delete(onStoreChange);
-    window.removeEventListener("storage", onStoreChange);
   };
 }
 
 function notify() {
-  cachedRaw = null; // 다음 getSnapshot 호출 때 강제로 다시 읽도록 캐시 무효화
   listeners.forEach((listener) => listener());
 }
 
-/** 새로 작성한(또는 같은 id로 덮어쓴) 일기를 브라우저에 로컬로 저장합니다. */
+/** 새로 작성한(또는 같은 id로 덮어쓴) 일기를 메모리에 저장합니다. */
 export function addSavedDiaryEntry(entry: DiaryEntry) {
   if (typeof window === "undefined") return;
-  const existing = parse(window.localStorage.getItem(STORAGE_KEY));
-  const next = [entry, ...existing.filter((e) => e.id !== entry.id)];
-  persist(next);
+  entries = [entry, ...entries.filter((e) => e.id !== entry.id)];
   notify();
 }
 
-/** id가 일치하는 로컬 저장 일기를 제거합니다 (저장된 적 없는 id면 아무 일도 하지 않음). */
+/** id가 일치하는 저장된 일기를 제거합니다 (저장된 적 없는 id면 아무 일도 하지 않음). */
 export function removeSavedDiaryEntry(id: string) {
   if (typeof window === "undefined") return;
-  const existing = parse(window.localStorage.getItem(STORAGE_KEY));
-  const next = existing.filter((e) => e.id !== id);
-  if (next.length === existing.length) return; // 지울 게 없었음
-  persist(next);
+  const next = entries.filter((e) => e.id !== id);
+  if (next.length === entries.length) return; // 지울 게 없었음
+  entries = next;
   notify();
 }
 
-/** 로컬에 저장된 일기를 전부 지웁니다 ('기억의 소멸' — 데이터 초기화). */
+/** 저장된 일기를 전부 지웁니다 ('기억의 소멸' — 데이터 초기화). */
 export function clearSavedDiaryEntries() {
   if (typeof window === "undefined") return;
-  persist([]);
+  entries = EMPTY_ENTRIES;
   notify();
 }
 
@@ -134,21 +74,21 @@ export function clearSavedDiaryEntries() {
  * 반영용). id 단위로만 add/remove하는 위 함수들과 달리, 같은 날짜의 일기를 다른
  * id의 항목으로 덮어써야 하는 가져오기 병합 결과를 그대로 반영할 수 있습니다.
  *
- * 저장 공간이 부족해 실제로는 반영되지 못했을 수 있어, 성공 여부를 반환합니다
- * (실패 시 localStorage는 이전 상태 그대로이므로 notify도 하지 않습니다). */
-export function setSavedDiaryEntries(entries: DiaryEntry[]): boolean {
+ * 메모리에만 반영하므로 실패할 일이 없어 항상 true를 반환합니다(호출부인
+ * DataRestorePanel의 "저장 공간 부족" 처리와의 호환을 위해 반환 형태는 유지). */
+export function setSavedDiaryEntries(next: DiaryEntry[]): boolean {
   if (typeof window === "undefined") return false;
-  const ok = persist(entries);
-  if (ok) notify();
-  return ok;
+  entries = next;
+  notify();
+  return true;
 }
 
-/** 로컬에 저장된 일기 목록을 구독합니다 (다른 탭에서의 변경도 반영됩니다). */
+/** 저장된 일기 목록을 구독합니다. */
 export function useSavedDiaryEntries(): DiaryEntry[] {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
-/** id 하나에 해당하는 로컬 저장 일기를 구독합니다. 없으면 null. */
+/** id 하나에 해당하는 저장된 일기를 구독합니다. 없으면 null. */
 export function useSavedDiaryEntry(id: string | null | undefined): DiaryEntry | null {
   const entries = useSavedDiaryEntries();
   if (!id) return null;

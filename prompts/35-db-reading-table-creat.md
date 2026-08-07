@@ -1,4 +1,4 @@
-글 읽기 테이블을 생성할 것
+# 글 읽기 리스트 테이블을 만들 것
 
     - 컬럼: id, title, text, mood, weather, image,created_at
     - id 컬럼에 오토 인크리먼트, 프라이머리 키 설정할 것

@@ -82,3 +82,7 @@ export {
 
 export type MoodKey = keyof typeof MOOD_ICONS;
 export type WeatherKey = keyof typeof WEATHER_ICONS;
+
+/** weather가 선택되지 않았을 때 memory_entries.weather 컬럼에 저장하는 값
+ * (선택한 경우엔 텍스트 대신 실제 이미지 데이터를 저장합니다 — lib/memoryEntries.ts). */
+export const WEATHER_UNSELECTED_LABEL = "[선택안함]";
