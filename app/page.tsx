@@ -1,9 +1,12 @@
+import { cookies } from "next/headers";
 import Header from "@/components/Header";
 import SettingsButton from "@/components/SettingsButton";
 import InfoButton from "@/components/InfoButton";
+import LogoutButton from "@/components/LogoutButton";
 import DiaryMenuList, {
   type DiaryMenuListItem,
 } from "@/components/DiaryMenuList";
+import { createClient } from "@/utils/supabase/server";
 import readingImage from "@/images/list-reading.jpg";
 import writingImage from "@/images/list-writing.jpg";
 import dataMgtImage from "@/images/list-datamgt.png";
@@ -29,12 +32,15 @@ const menuItems: DiaryMenuListItem[] = [
   },
 ];
 
-export default function Home() {
+export default async function Home() {
+  const supabase = createClient(await cookies());
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <div className="flex h-dvh justify-center overflow-hidden bg-[var(--background)] p-4 sm:p-6">
       <div className="relative flex w-full max-w-3xl flex-col rounded-3xl border border-[var(--border)] bg-[var(--card)] p-4 sm:p-6">
-        {/* settings.png 오른쪽에 info.png가 나란히 오도록(요구사항) 두 아이콘을
-           한 그룹으로 묶어 우측 상단에 배치합니다. */}
         <div className="absolute top-4 right-4 flex items-center gap-2 sm:top-6 sm:right-6">
           <SettingsButton />
           <InfoButton />
@@ -44,6 +50,14 @@ export default function Home() {
         <main className="flex min-h-0 w-full flex-1 justify-center">
           <DiaryMenuList items={menuItems} />
         </main>
+        {/* absolute로 우측 하단에 얹으면 메뉴 목록(flex-1이라 카드 하단까지
+           꽉 채움)의 세 번째 항목과 겹쳤습니다 — 일반 흐름에 넣어서 main의
+           flex-1이 이 버튼 높이만큼 자동으로 줄어들게 합니다. */}
+        {user && (
+          <div className="mt-3 flex w-full shrink-0 justify-end sm:mt-4">
+            <LogoutButton />
+          </div>
+        )}
       </div>
     </div>
   );
