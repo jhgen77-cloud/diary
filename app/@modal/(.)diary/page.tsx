@@ -1,20 +1,24 @@
+import { Suspense } from "react";
 import Modal from "@/components/Modal";
-import DiaryBrowser from "@/components/DiaryBrowser";
-import { fetchMemoryEntriesServer } from "@/lib/memoryEntries.server";
+import DiaryBrowserData from "@/components/DiaryBrowserData";
+import DiaryLoadingIndicator from "@/components/DiaryLoadingIndicator";
 
-// app/diary/page.tsx와 내용이 같습니다 — 새로고침 깜빡임을 없애기 위해
-// Supabase 글 목록을 여기서(Server Component) 미리 가져와 내려줍니다.
+// app/diary/page.tsx와 내용이 같습니다. Supabase 글 목록 조회(DiaryBrowserData)만
+// <Suspense>로 감싸, 그 응답을 기다리는 동안에도 Modal(제목/닫기 버튼)은 클릭 즉시
+// 뜨도록 분리했습니다 — 가끔 Supabase 응답이 느릴 때 클릭 후 모달 자체가 늦게
+// 뜨는 것처럼 보이던 문제(실제로 겪은 문제)의 원인이었습니다.
 export default async function DiaryModal({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
-  const entries = await fetchMemoryEntriesServer();
 
   return (
     <Modal title="그날을 거닐다" size="xl" closeHref="/">
-      <DiaryBrowser entries={entries} initialQuery={q} />
+      <Suspense fallback={<DiaryLoadingIndicator />}>
+        <DiaryBrowserData initialQuery={q} />
+      </Suspense>
     </Modal>
   );
 }

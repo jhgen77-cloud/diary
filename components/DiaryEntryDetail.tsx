@@ -101,35 +101,16 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               <div className="flex items-center gap-1.5">
                 <span className="relative h-7 w-7 shrink-0 sm:h-8 sm:w-8">
-                  {entry.moodImageSrc ? (
-                    // Supabase에서 읽어온 글은 mood 컬럼 자체가 이미지 데이터라 그대로 그립니다.
-                    // eslint-disable-next-line @next/next/no-img-element -- data URL이라 next/image 최적화 대상이 아님
-                    <img
-                      src={entry.moodImageSrc}
-                      alt={entry.mood}
-                      className="h-full w-full object-contain"
-                    />
-                  ) : (
-                    <Image src={MOOD_ICONS[entry.mood]} alt={entry.mood} fill className="object-contain" />
-                  )}
+                  <Image src={MOOD_ICONS[entry.mood]} alt={entry.mood} fill className="object-contain" />
                 </span>
-                {(entry.weather || entry.weatherImageSrc) && (
+                {entry.weather && (
                   <span className="relative h-7 w-7 shrink-0 sm:h-8 sm:w-8">
-                    {entry.weatherImageSrc ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- data URL이라 next/image 최적화 대상이 아님
-                      <img
-                        src={entry.weatherImageSrc}
-                        alt={entry.weather ?? "날씨"}
-                        className="h-full w-full object-contain"
-                      />
-                    ) : (
-                      <Image
-                        src={WEATHER_ICONS[entry.weather!]}
-                        alt={entry.weather!}
-                        fill
-                        className="object-contain"
-                      />
-                    )}
+                    <Image
+                      src={WEATHER_ICONS[entry.weather]}
+                      alt={entry.weather}
+                      fill
+                      className="object-contain"
+                    />
                   </span>
                 )}
               </div>

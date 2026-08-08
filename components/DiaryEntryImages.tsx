@@ -34,7 +34,7 @@ export default function DiaryEntryImages({ images }: DiaryEntryImagesProps) {
 
   return (
     <div className="relative flex h-40 w-full shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[var(--hover)] sm:h-48">
-      {/* eslint-disable-next-line @next/next/no-img-element -- data URL(로컬 저장된 리사이즈 이미지)이라 next/image 최적화 대상이 아님 */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- 로컬 글은 data URL, Supabase에 저장된 글은 Storage 공개 URL이라 next/image 최적화 대상이 아님 */}
       <img
         src={images[index]}
         alt={`첨부 이미지 ${index + 1}/${images.length}`}

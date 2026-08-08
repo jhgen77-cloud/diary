@@ -211,8 +211,11 @@ function buildDiaryXml(entries: DiaryEntry[]) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<diary>\n${items}\n</diary>\n`;
 }
 
-async function dataUrlToBlob(dataUrl: string) {
-  const response = await fetch(dataUrl);
+// entry.images 항목은 로컬 글이면 data URL, Supabase에서 읽어온 글이면
+// Storage 공개 URL입니다 — fetch()는 둘 다 그대로 받아올 수 있어 함수 하나로
+// 처리합니다.
+async function imageSrcToBlob(imageSrc: string) {
+  const response = await fetch(imageSrc);
   return response.blob();
 }
 
@@ -244,7 +247,7 @@ async function writeZipFile(dirHandle: FileSystemDirectoryHandle, file: ZipFile)
   const imagesFolder = zip.folder("images");
   for (const entry of file.entries) {
     for (let index = 0; index < entry.images.length; index += 1) {
-      const blob = await dataUrlToBlob(entry.images[index]);
+      const blob = await imageSrcToBlob(entry.images[index]);
       imagesFolder?.file(`${entry.id}-${index}.jpg`, blob);
     }
   }

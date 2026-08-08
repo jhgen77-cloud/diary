@@ -4,49 +4,18 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import type { DiaryEntry } from "@/lib/mockDiaryEntries";
 import { removeSavedDiaryEntry } from "@/lib/savedDiaryEntries";
-import { MOOD_ICONS, WEATHER_ICONS, WEATHER_UNSELECTED_LABEL, type MoodKey, type WeatherKey } from "@/lib/diaryIcons";
+import type { MoodKey, WeatherKey } from "@/lib/diaryIcons";
 import { REMOTE_ID_PREFIX, rowToEntry } from "@/lib/memoryEntriesShared";
 
-/** 이미지(png/jpeg 등) URL을 실제로 fetch해 data URL 문자열로 인코딩합니다.
- * mood/weather 컬럼에는 파일명이 아니라 이미지 데이터 자체를 저장해야 해서
- * 필요합니다. */
-function urlToDataUrl(url: string): Promise<string> {
-  return fetch(url)
-    .then((response) => response.blob())
-    .then(
-      (blob) =>
-        new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = () => reject(reader.error);
-          reader.readAsDataURL(blob);
-        })
-    );
-}
+type SupabaseClient = ReturnType<typeof createClient>;
 
-// mood/weather 아이콘은 종류가 고정돼 있어, 한 번 인코딩한 결과를 세션 동안
-// 재사용합니다(저장할 때마다 같은 이미지를 매번 다시 fetch/인코딩할 필요가
-// 없습니다).
-const moodIconDataUrlCache = new Map<MoodKey, Promise<string>>();
-const weatherIconDataUrlCache = new Map<WeatherKey, Promise<string>>();
-
-function getMoodIconDataUrl(mood: MoodKey): Promise<string> {
-  let cached = moodIconDataUrlCache.get(mood);
-  if (!cached) {
-    cached = urlToDataUrl(MOOD_ICONS[mood].src);
-    moodIconDataUrlCache.set(mood, cached);
-  }
-  return cached;
-}
-
-function getWeatherIconDataUrl(weather: WeatherKey): Promise<string> {
-  let cached = weatherIconDataUrlCache.get(weather);
-  if (!cached) {
-    cached = urlToDataUrl(WEATHER_ICONS[weather].src);
-    weatherIconDataUrlCache.set(weather, cached);
-  }
-  return cached;
-}
+// 첨부 이미지를 담는 Storage 버킷. 공개 버킷이라 업로드 후 받은 공개 URL을
+// memory_entries.image 컬럼에 그대로 저장해두면 만료 없이 계속 동작합니다
+// (예전엔 이 컬럼에 base64 데이터를 통째로 직접 저장했습니다 — Postgres 행
+// 용량/백업 부담을 줄이려고 Storage로 옮겼습니다). 이 앱은 로그인이 없어
+// 폴더 이름으로 memory_entries.id(문자열)를 그대로 씁니다 — 글 하나당 폴더
+// 하나, 그 안에 0.jpg / 1.jpg ... 순으로 최대 MAX_IMAGES(5)장.
+const DIARY_IMAGES_BUCKET = "diary-images";
 
 // 이번 세션에서 저장 직후 Supabase에도 반영된 글의 (로컬 id → 원격 id) 매핑.
 // 로컬 저장소(useSavedDiaryEntries)엔 저장하자마자 즉시 반영되는데, 이후
@@ -74,38 +43,77 @@ function toLocalWallClockTimestamp(isoString: string): string {
   );
 }
 
+/** 이 폴더(글 하나) 아래 남아있는 첨부 이미지를 전부 지웁니다. 수정 저장(다시
+ * 업로드하기 전 이전 파일 정리)과 글 삭제, 전체 초기화에서 공통으로 씁니다.
+ * 실패해도(네트워크 오류 등) throw하지 않습니다 — Storage 정리는 부가 작업일
+ * 뿐이라, 여기서 실패했다고 더 중요한 DB 삭제/수정 자체를 막으면 안 됩니다. */
+async function clearEntryImages(supabase: SupabaseClient, folderKey: string): Promise<void> {
+  const { data: files, error: listError } = await supabase.storage
+    .from(DIARY_IMAGES_BUCKET)
+    .list(folderKey);
+  if (listError) {
+    console.error("첨부 이미지 목록 조회 실패", listError);
+    return;
+  }
+  if (!files || files.length === 0) return;
+
+  const { error: removeError } = await supabase.storage
+    .from(DIARY_IMAGES_BUCKET)
+    .remove(files.map((file) => `${folderKey}/${file.name}`));
+  if (removeError) {
+    console.error("첨부 이미지 삭제 실패", removeError);
+  }
+}
+
+/** entry.images(리사이즈된 data URL 목록)를 이 글의 Storage 폴더에 업로드하고,
+ * 공개 URL 목록을 돌려줍니다(첨부가 없으면 null). 하나라도 업로드에 실패하면
+ * 예외를 던집니다 — 일부만 올라간 채로 DB에 반영되면 이미지가 빠진 글이
+ * 저장되므로, 호출부(insertMemoryEntry/updateMemoryEntry)가 catch해서 실패
+ * 처리합니다. */
+async function uploadEntryImages(
+  supabase: SupabaseClient,
+  folderKey: string,
+  images: string[]
+): Promise<string[] | null> {
+  if (images.length === 0) return null;
+
+  const urls: string[] = [];
+  for (let index = 0; index < images.length; index += 1) {
+    const blob = await (await fetch(images[index])).blob();
+    const path = `${folderKey}/${index}.jpg`;
+    const { error } = await supabase.storage
+      .from(DIARY_IMAGES_BUCKET)
+      .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+    if (error) throw error;
+
+    const { data } = supabase.storage.from(DIARY_IMAGES_BUCKET).getPublicUrl(path);
+    urls.push(data.publicUrl);
+  }
+  return urls;
+}
+
 interface EncodedEntryFields {
   title: string;
   text: string;
-  mood: string;
-  weather: string;
-  image: string[] | null;
+  /** 목록/달력 조회가 image 컬럼 없이도 첨부 여부를 알 수 있도록 별도로
+   * 저장해두는 값(lib/memoryEntriesShared.ts의 rowToEntry 참고). */
+  has_attachment: boolean;
   created_at: string;
-  /** 실제 선택된 기분/날씨 키(예: "smile", "rain"). mood/weather 컬럼엔
-   * 이미지 데이터만 들어있어 원래 키를 되짚을 수 없어서, 수정 화면을 다시
-   * 열었을 때 기분/날씨를 정확히 복원하려면 이 값이 따로 필요합니다. */
   mood_key: MoodKey;
   weather_key: WeatherKey | null;
 }
 
-/** insertMemoryEntry/updateMemoryEntry가 공통으로 쓰는 컬럼 값 인코딩. mood
- * 컬럼에는 파일명이 아니라 실제 png/jpeg 이미지(data URL)를 저장하고, weather
- * 컬럼은 선택하지 않았으면 텍스트("[선택안함]"), 선택했으면 mood와 같은
- * 방식으로 실제 이미지(data URL)를 저장합니다. image 컬럼은 text[]라 첨부한
- * 이미지(최대 5장, MAX_IMAGES 기준)를 그대로 배열로 저장합니다(첨부 없으면
- * null). */
-async function encodeEntryFields(entry: DiaryEntry): Promise<EncodedEntryFields> {
-  const [moodImage, weatherValue] = await Promise.all([
-    getMoodIconDataUrl(entry.mood),
-    entry.weather ? getWeatherIconDataUrl(entry.weather) : Promise.resolve(WEATHER_UNSELECTED_LABEL),
-  ]);
-
+/** insertMemoryEntry/updateMemoryEntry가 공통으로 쓰는 컬럼 값 인코딩(첨부
+ * 이미지 제외 — Storage 업로드가 필요해 각자 별도로 처리합니다). mood_key/
+ * weather_key에는 실제 선택된 키(예: "smile", "rain")를 그대로 저장합니다 —
+ * 예전엔 mood/weather 컬럼에 아이콘 이미지(data URL)까지 통째로 중복 저장했지만,
+ * 화면은 애초에 이 키만 보고 MOOD_ICONS/WEATHER_ICONS로 그리므로 그 컬럼은
+ * 스키마에서 제거했습니다. */
+function encodeEntryFields(entry: DiaryEntry): EncodedEntryFields {
   return {
     title: entry.title,
     text: entry.content,
-    mood: moodImage,
-    weather: weatherValue,
-    image: entry.images.length > 0 ? entry.images : null,
+    has_attachment: entry.hasAttachment,
     created_at: toLocalWallClockTimestamp(entry.createdAt),
     mood_key: entry.mood,
     weather_key: entry.weather,
@@ -113,34 +121,27 @@ async function encodeEntryFields(entry: DiaryEntry): Promise<EncodedEntryFields>
 }
 
 /** "시간을 붙잡다"(DiaryWriteForm)에서 저장할 때, Supabase의 "글 읽기 리스트"
- * (memory_entries) 테이블에 한 행을 추가하고, 같은 내용을 "날짜별 목록
- * 리스트"(date_list)와 "달력 검색 리스트"(calendar_search_list)에도
- * memory_entries_id로 연결해 함께 추가합니다.
+ * (memory_entries) 테이블에 한 행을 추가합니다.
  *
  * memory_entries.id는 자동 증가 값이라 이 앱의 entry.id(uuid)와 연결할 컬럼이
  * 없습니다 — 그래서 새 글을 쓸 때만 이 함수를 쓰고, 이미 Supabase에 있는 글을
- * 고치는 경우엔 updateMemoryEntry를 씁니다. */
+ * 고치는 경우엔 updateMemoryEntry를 씁니다.
+ *
+ * 첨부 이미지는 Storage 폴더 이름으로 이 행의 id(자동 증가값)를 써야 해서,
+ * 행을 먼저 만들고 그 id로 이미지를 올린 뒤 image 컬럼만 다시 갱신하는
+ * 순서로 진행합니다. */
 export async function insertMemoryEntry(entry: DiaryEntry): Promise<boolean> {
   const supabase = createClient();
-  const {
-    title,
-    text,
-    mood: moodImage,
-    weather: weatherValue,
-    image: images,
-    created_at: createdAt,
-    mood_key: moodKey,
-    weather_key: weatherKey,
-  } = await encodeEntryFields(entry);
+  const { title, text, has_attachment: hasAttachment, created_at: createdAt, mood_key: moodKey, weather_key: weatherKey } =
+    encodeEntryFields(entry);
 
   const { data, error } = await supabase
     .from("memory_entries")
     .insert({
       title,
       text,
-      mood: moodImage,
-      weather: weatherValue,
-      image: images,
+      image: null,
+      has_attachment: hasAttachment,
       created_at: createdAt,
       mood_key: moodKey,
       weather_key: weatherKey,
@@ -153,41 +154,19 @@ export async function insertMemoryEntry(entry: DiaryEntry): Promise<boolean> {
     return false;
   }
 
-  // "날짜별 목록 리스트"(date_list)에도 글 읽기 리스트(memory_entries)의 같은
-  // 값을 그대로 복사해 추가하고, memory_entries_id로 방금 추가한 행을
-  // 참조하게 합니다.
-  const { error: dateListError } = await supabase.from("date_list").insert({
-    date_title: entry.title,
-    date_mood: moodImage,
-    date_weather: weatherValue,
-    date_image: images,
-    date_at: createdAt,
-    date_mood_key: moodKey,
-    date_weather_key: weatherKey,
-    memory_entries_id: data.id,
-  });
-
-  if (dateListError) {
-    console.error("date_list 저장 실패", dateListError);
-    return false;
-  }
-
-  // "달력 검색 리스트"(calendar_search_list)에도 마찬가지로 글 읽기 리스트
-  // (memory_entries)의 같은 값을 복사해 추가합니다(이 테이블엔 title 컬럼이
-  // 없어 mood/weather/image/created_at만 참조합니다).
-  const { error: calendarListError } = await supabase.from("calendar_search_list").insert({
-    calendar_mood: moodImage,
-    calendar_weather: weatherValue,
-    calendar_image: images,
-    calendar_at: createdAt,
-    calendar_mood_key: moodKey,
-    calendar_weather_key: weatherKey,
-    memory_entries_id: data.id,
-  });
-
-  if (calendarListError) {
-    console.error("calendar_search_list 저장 실패", calendarListError);
-    return false;
+  if (entry.images.length > 0) {
+    try {
+      const imageUrls = await uploadEntryImages(supabase, String(data.id), entry.images);
+      const { error: imageError } = await supabase
+        .from("memory_entries")
+        .update({ image: imageUrls })
+        .eq("id", data.id);
+      if (imageError) console.error("첨부 이미지 URL 저장 실패", imageError);
+    } catch (uploadError) {
+      // 글 자체(텍스트/기분/날씨)는 이미 저장됐으니 실패로 되돌리지 않고,
+      // 이미지만 빠진 채로 둡니다 — 콘솔에는 원인을 남깁니다.
+      console.error("첨부 이미지 업로드 실패", uploadError);
+    }
   }
 
   // 이 글의 로컬 id로 Supabase에 다시 조회했을 때 나올 id를 기록해 둡니다
@@ -197,35 +176,39 @@ export async function insertMemoryEntry(entry: DiaryEntry): Promise<boolean> {
 }
 
 /** 이미 Supabase에 저장된 글("mem-<bigint>" id)을 "시간을 붙잡다"에서 다시
- * 고쳐 저장할 때 씁니다. memory_entries 행을 갱신하고, memory_entries_id로
- * 연결된 date_list/calendar_search_list 행도 같은 값으로 함께 갱신합니다.
- * mood_key/weather_key 컬럼 덕분에 수정 화면을 다시 열어도 원래 기분/날씨
- * 선택이 그대로 복원됩니다(rowToEntry 참고). */
+ * 고쳐 저장할 때 씁니다. mood_key/weather_key 컬럼 덕분에 수정 화면을 다시
+ * 열어도 원래 기분/날씨 선택이 그대로 복원됩니다(rowToEntry 참고).
+ *
+ * 첨부 이미지는 이 글의 Storage 폴더를 통째로 비운 뒤 현재 첨부된 이미지를
+ * 다시 올립니다 — 어떤 이미지가 빠졌는지 하나하나 비교하는 대신, 매번 비우고
+ * 다시 채우는 편이 더 단순하고 이전 파일이 고아로 남는 일도 없습니다(최대
+ * 5장이라 매번 다시 올려도 부담이 크지 않습니다). */
 export async function updateMemoryEntry(entryId: string, entry: DiaryEntry): Promise<boolean> {
   if (!isRemoteEntryId(entryId)) return false;
   const numericId = Number(entryId.slice(REMOTE_ID_PREFIX.length));
   if (!Number.isFinite(numericId)) return false;
 
   const supabase = createClient();
-  const {
-    title,
-    text,
-    mood: moodImage,
-    weather: weatherValue,
-    image: images,
-    created_at: createdAt,
-    mood_key: moodKey,
-    weather_key: weatherKey,
-  } = await encodeEntryFields(entry);
+  const { title, text, has_attachment: hasAttachment, created_at: createdAt, mood_key: moodKey, weather_key: weatherKey } =
+    encodeEntryFields(entry);
+
+  const folderKey = String(numericId);
+  await clearEntryImages(supabase, folderKey);
+
+  let imageUrls: string[] | null = null;
+  try {
+    imageUrls = await uploadEntryImages(supabase, folderKey, entry.images);
+  } catch (uploadError) {
+    console.error("첨부 이미지 업로드 실패", uploadError);
+  }
 
   const { error } = await supabase
     .from("memory_entries")
     .update({
       title,
       text,
-      mood: moodImage,
-      weather: weatherValue,
-      image: images,
+      image: imageUrls,
+      has_attachment: hasAttachment,
       created_at: createdAt,
       mood_key: moodKey,
       weather_key: weatherKey,
@@ -237,55 +220,21 @@ export async function updateMemoryEntry(entryId: string, entry: DiaryEntry): Pro
     return false;
   }
 
-  const { error: dateListError } = await supabase
-    .from("date_list")
-    .update({
-      date_title: title,
-      date_mood: moodImage,
-      date_weather: weatherValue,
-      date_image: images,
-      date_at: createdAt,
-      date_mood_key: moodKey,
-      date_weather_key: weatherKey,
-    })
-    .eq("memory_entries_id", numericId);
-
-  if (dateListError) {
-    console.error("date_list 수정 실패", dateListError);
-    return false;
-  }
-
-  const { error: calendarListError } = await supabase
-    .from("calendar_search_list")
-    .update({
-      calendar_mood: moodImage,
-      calendar_weather: weatherValue,
-      calendar_image: images,
-      calendar_at: createdAt,
-      calendar_mood_key: moodKey,
-      calendar_weather_key: weatherKey,
-    })
-    .eq("memory_entries_id", numericId);
-
-  if (calendarListError) {
-    console.error("calendar_search_list 수정 실패", calendarListError);
-    return false;
-  }
-
   syncedRemoteIds.set(entryId, entryId);
   return true;
 }
 
-/** Supabase에 저장된 글("mem-<bigint>" id)을 삭제합니다. date_list/
- * calendar_search_list는 memory_entries_id가 ON DELETE SET NULL로 걸려있어
- * (별도 요구사항) 그 행 자체는 남고 참조만 비워집니다 — 여기서 따로 지우지
- * 않습니다. */
+/** Supabase에 저장된 글("mem-<bigint>" id)을 삭제합니다. Storage에 올려둔
+ * 첨부 이미지도 함께 지워, 글은 지워졌는데 이미지 파일만 버킷에 고아로
+ * 남는 일이 없게 합니다. */
 export async function deleteMemoryEntry(entryId: string): Promise<boolean> {
   if (!isRemoteEntryId(entryId)) return false;
   const numericId = Number(entryId.slice(REMOTE_ID_PREFIX.length));
   if (!Number.isFinite(numericId)) return false;
 
   const supabase = createClient();
+  await clearEntryImages(supabase, String(numericId));
+
   const { error } = await supabase.from("memory_entries").delete().eq("id", numericId);
 
   if (error) {
@@ -320,18 +269,21 @@ export async function deleteDiaryEntryEverywhere(id: string): Promise<void> {
 }
 
 /** Supabase에 저장된 글을 전부 지웁니다("기억의 소멸" — 데이터 전체 초기화용).
- * memory_entries뿐 아니라 date_list/calendar_search_list도 함께 비웁니다 —
- * memory_entries만 지우면 그 두 테이블은 ON DELETE SET NULL로 참조만 비워질
- * 뿐 행 자체는 남아 완전한 초기화가 되지 않습니다. */
+ * diary-images 버킷에 올려둔 첨부 이미지도 폴더(글 id)별로 모두 비웁니다. */
 export async function clearAllRemoteDiaryData(): Promise<boolean> {
   const supabase = createClient();
-  const [dateListResult, calendarListResult, memoryEntriesResult] = await Promise.all([
-    supabase.from("date_list").delete().gte("id", 0),
-    supabase.from("calendar_search_list").delete().gte("id", 0),
-    supabase.from("memory_entries").delete().gte("id", 0),
-  ]);
 
-  const error = dateListResult.error ?? calendarListResult.error ?? memoryEntriesResult.error;
+  const { data: folders, error: listError } = await supabase.storage
+    .from(DIARY_IMAGES_BUCKET)
+    .list();
+  if (listError) {
+    console.error("첨부 이미지 폴더 목록 조회 실패", listError);
+  } else if (folders) {
+    await Promise.all(folders.map((folder) => clearEntryImages(supabase, folder.name)));
+  }
+
+  const { error } = await supabase.from("memory_entries").delete().gte("id", 0);
+
   if (error) {
     console.error("Supabase 데이터 초기화 실패", error);
     return false;
@@ -342,12 +294,16 @@ export async function clearAllRemoteDiaryData(): Promise<boolean> {
 
 /** 목록/달력에 쓸 글 전체를 최신순으로 불러옵니다. 본문(text)은 목록에
  * 표시하지 않아 대역폭을 아끼기 위해 조회에서 뺍니다(상세 조회는
- * fetchMemoryEntryById가 따로 담당). */
+ * fetchMemoryEntryById가 따로 담당). image(첨부 이미지 URL) 컬럼도 목록
+ * 화면은 실제로 그리지 않고 "첨부 있음" 아이콘만 표시하므로, 그 여부만 담은
+ * has_attachment만 가져오고 image는 select하지 않습니다 — 예전엔 image까지
+ * 통째로 내려받아 목록/달력을 열 때마다 화면에 안 쓰는 이미지 데이터를
+ * 불필요하게 전부 로드하고 있었습니다(실제로 겪은 문제). */
 export async function fetchMemoryEntries(): Promise<DiaryEntry[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("memory_entries")
-    .select("id, title, mood, weather, image, created_at, mood_key, weather_key")
+    .select("id, title, has_attachment, created_at, mood_key, weather_key")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -358,7 +314,9 @@ export async function fetchMemoryEntries(): Promise<DiaryEntry[]> {
 }
 
 /** id 하나로 memory_entries에서 글 하나를 불러옵니다. entryId가 "mem-"로
- * 시작하지 않으면(로컬 글이면) 곧바로 null을 반환합니다. */
+ * 시작하지 않으면(로컬 글이면) 곧바로 null을 반환합니다. image 컬럼에는
+ * Storage 공개 URL이 들어있어(예전의 base64 데이터 대신), 다른 로컬 글과
+ * 마찬가지로 그대로 <img src>에 쓸 수 있습니다. */
 export async function fetchMemoryEntryById(entryId: string): Promise<DiaryEntry | null> {
   if (!entryId.startsWith(REMOTE_ID_PREFIX)) return null;
   const numericId = Number(entryId.slice(REMOTE_ID_PREFIX.length));
@@ -367,7 +325,7 @@ export async function fetchMemoryEntryById(entryId: string): Promise<DiaryEntry 
   const supabase = createClient();
   const { data, error } = await supabase
     .from("memory_entries")
-    .select("id, title, text, mood, weather, image, created_at, mood_key, weather_key")
+    .select("id, title, text, image, created_at, mood_key, weather_key")
     .eq("id", numericId)
     .maybeSingle();
 

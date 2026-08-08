@@ -1,11 +1,5 @@
 import { formatLocalDate, type DiaryEntry } from "@/lib/mockDiaryEntries";
-import {
-  MOOD_ICONS,
-  WEATHER_ICONS,
-  WEATHER_UNSELECTED_LABEL,
-  type MoodKey,
-  type WeatherKey,
-} from "@/lib/diaryIcons";
+import { MOOD_ICONS, WEATHER_ICONS, type MoodKey, type WeatherKey } from "@/lib/diaryIcons";
 
 /** memory_entries 관련 로직 중 클라이언트(lib/memoryEntries.ts)와 서버
  * (lib/memoryEntries.server.ts) 양쪽에서 똑같이 필요한 부분만 모아둔 파일입니다.
@@ -48,41 +42,41 @@ export interface MemoryEntryRow {
   id: number;
   title: string;
   text?: string;
-  mood: string;
-  weather: string;
-  image: string[] | null;
+  /** 목록/달력 조회(fetchMemoryEntries)는 화면에 그리지도 않는 이미지 데이터를
+   * 아낄 겸 이 컬럼 자체를 select하지 않습니다 — 그때는 undefined입니다.
+   * 상세 조회(fetchMemoryEntryById)만 실제 배열을 채워 넣습니다. */
+  image?: string[] | null;
+  /** "첨부 있음" 여부만 담는 가벼운 컬럼. image를 select하지 않는 목록/달력
+   * 조회에서 hasAttachment를 계산하는 데 씁니다. */
+  has_attachment?: boolean;
   created_at: string;
   mood_key: string;
   weather_key: string | null;
 }
 
-/** memory_entries 행을 DiaryEntry로 변환합니다. mood/weather 컬럼엔 이미지
- * 데이터가, mood_key/weather_key 컬럼엔 실제 선택 키가 들어있습니다 — 화면
- * 렌더링은 mood_key/weather_key를 신뢰해 기존 MOOD_ICONS/WEATHER_ICONS로
- * 그대로 그리고(다른 로컬 글과 동일한 방식), moodImageSrc/weatherImageSrc는
- * 이 컬럼들이 아직 없던(마이그레이션 이전) 옛 행처럼 키를 알 수 없을 때만
- * 대신 씁니다. */
+/** memory_entries 행을 DiaryEntry로 변환합니다. mood_key/weather_key만으로
+ * 기분/날씨를 복원해 기존 MOOD_ICONS/WEATHER_ICONS로 그립니다(다른 로컬
+ * 글과 동일한 방식) — 예전엔 mood/weather 컬럼에 아이콘 이미지 데이터 자체가
+ * 따로 들어있어 그 컬럼이 없던 옛 행을 위한 폴백 렌더링(moodImageSrc 등)이
+ * 있었지만, 그 컬럼을 스키마에서 제거하면서(중복 저장이라 늘 mood_key/
+ * weather_key만 쓰였음) 함께 걷어냈습니다.
+ *
+ * image가 select된 경우(상세 조회)엔 그 배열 길이로 hasAttachment를 정확히
+ * 계산하고, select되지 않은 경우(목록/달력 조회)엔 has_attachment 컬럼 값을
+ * 그대로 씁니다. */
 export function rowToEntry(row: MemoryEntryRow): DiaryEntry {
   const localCreatedAt = fromLocalWallClockTimestamp(row.created_at);
-  const hasWeatherImage = row.weather !== WEATHER_UNSELECTED_LABEL;
-  const hasMoodKey = isMoodKey(row.mood_key);
-  const hasWeatherKey = isWeatherKey(row.weather_key);
 
   return {
     id: `${REMOTE_ID_PREFIX}${row.id}`,
     date: formatLocalDate(localCreatedAt),
     title: row.title,
     content: row.text ?? "",
-    mood: hasMoodKey ? (row.mood_key as MoodKey) : "none",
-    weather: hasWeatherKey ? (row.weather_key as WeatherKey) : null,
-    hasAttachment: Array.isArray(row.image) && row.image.length > 0,
+    mood: isMoodKey(row.mood_key) ? row.mood_key : "none",
+    weather: isWeatherKey(row.weather_key) ? row.weather_key : null,
+    hasAttachment: Array.isArray(row.image) ? row.image.length > 0 : !!row.has_attachment,
     images: row.image ?? [],
     createdAt: localCreatedAt.toISOString(),
-    // mood_key/weather_key가 없는(마이그레이션 이전) 옛 행에서만 저장된
-    // 이미지를 직접 그립니다 — 키가 있으면 다른 로컬 글과 똑같이
-    // MOOD_ICONS/WEATHER_ICONS로 그립니다.
-    moodImageSrc: hasMoodKey ? undefined : row.mood,
-    weatherImageSrc: !hasWeatherKey && hasWeatherImage ? row.weather : undefined,
     source: "remote",
   };
 }
