@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import Link from "next/link";
 import Header from "@/components/Header";
 import SettingsButton from "@/components/SettingsButton";
 import InfoButton from "@/components/InfoButton";
@@ -52,12 +53,18 @@ export default async function Home() {
         </main>
         {/* absolute로 우측 하단에 얹으면 메뉴 목록(flex-1이라 카드 하단까지
            꽉 채움)의 세 번째 항목과 겹쳤습니다 — 일반 흐름에 넣어서 main의
-           flex-1이 이 버튼 높이만큼 자동으로 줄어들게 합니다. */}
-        {user && (
-          <div className="mt-3 flex w-full shrink-0 justify-end sm:mt-4">
-            <LogoutButton />
-          </div>
-        )}
+           flex-1이 이 버튼(+ 개인정보 처리방침 링크) 높이만큼 자동으로
+           줄어들게 합니다. 개인정보 처리방침 링크는 비로그인 사용자도 볼 수
+           있어야 해서 로그아웃 버튼과 달리 항상 렌더링합니다. */}
+        <div className="mt-3 flex w-full shrink-0 flex-col items-end gap-1.5 sm:mt-4">
+          {user && <LogoutButton />}
+          <Link
+            href="/privacy"
+            className="text-xs text-[var(--text-sub)] hover:underline sm:text-sm"
+          >
+            개인정보 처리방침
+          </Link>
+        </div>
       </div>
     </div>
   );

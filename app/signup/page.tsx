@@ -64,10 +64,17 @@ export default function SignupPage() {
       <AuthCard
         footer={
           <>
-            이미 계정이 있으신가요?{" "}
-            <Link href="/login" className="text-[var(--accent)] hover:underline">
-              로그인
-            </Link>
+            <p>
+              이미 계정이 있으신가요?{" "}
+              <Link href="/login" className="text-[var(--accent)] hover:underline">
+                로그인
+              </Link>
+            </p>
+            <p>
+              <Link href="/privacy" className="text-[var(--text-sub)] hover:underline">
+                개인정보 처리방침
+              </Link>
+            </p>
           </>
         }
       >
