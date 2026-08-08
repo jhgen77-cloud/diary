@@ -4,18 +4,23 @@ import { useRef, useState } from "react";
 import DataOptionRadio from "@/components/DataOptionRadio";
 import NoticeDialog from "@/components/NoticeDialog";
 import { letterIIcon, warningSignIcon } from "@/lib/diaryIcons";
-import { setSavedDiaryEntries, useSavedDiaryEntries } from "@/lib/savedDiaryEntries";
+import {
+  setSavedDiaryEntries,
+  updateSavedDiaryEntryId,
+  useSavedDiaryEntries,
+} from "@/lib/savedDiaryEntries";
 import {
   mergeImportedEntries,
   readImportFiles,
   type ImportOption,
 } from "@/lib/importDiaryEntries";
 import {
-  useMemoryEntries,
+  useMemoryEntriesFull,
   insertMemoryEntry,
   updateMemoryEntry,
   isRemoteEntryId,
   getSyncedRemoteId,
+  confirmSyncedRemoteId,
 } from "@/lib/memoryEntries";
 import type { DiaryEntry } from "@/lib/mockDiaryEntries";
 
@@ -45,8 +50,14 @@ export default function DataRestorePanel() {
   const savedEntries = useSavedDiaryEntries();
   // "그날을 거닐다"와 동일하게 Supabase에 저장된 글도 함께 병합 대상에
   // 넣습니다 — 아니면 이미 Supabase에만 있는 글과 같은 날짜를 가져와도
-  // 충돌로 인식되지 않아 중복으로 쌓일 수 있었습니다.
-  const { entries: remoteEntries } = useMemoryEntries(savedEntries);
+  // 충돌로 인식되지 않아 중복으로 쌓일 수 있었습니다. 이 목록은 병합 결과
+  // (next)가 그대로 로컬 저장소 전체를 대체하는 데도 쓰이므로, 목록용 조회
+  // (useMemoryEntries, 본문/첨부 제외)를 쓰면 이번 가져오기와 무관한 다른
+  // 원격 글까지 본문 없는 사본으로 로컬에 "고정"돼 버립니다 — 그 뒤로는
+  // 상세 보기가 원격 재조회 대신 이 빈 로컬 사본을 그대로 보여주는 문제가
+  // 있었습니다(실제로 겪은 문제와 같은 원인 — DataExportPanel 참고).
+  // useMemoryEntriesFull로 본문/첨부까지 포함해 받아옵니다.
+  const { entries: remoteEntries } = useMemoryEntriesFull(savedEntries);
   const entries = [...savedEntries, ...remoteEntries];
   const [option, setOption] = useState<ImportOption>("skip");
   const [dialog, setDialog] = useState<DialogState>({ type: "none" });
@@ -81,9 +92,23 @@ export default function DataRestorePanel() {
       // 원격/동기화된 글(같은 글을 다시 가져와 덮어쓴 경우)이면 그 행을
       // 갱신하고, 그 외엔 새 행으로 추가합니다.
       await Promise.all(
-        touched.map((entry: DiaryEntry) => {
+        touched.map(async (entry: DiaryEntry) => {
           const remoteId = isRemoteEntryId(entry.id) ? entry.id : getSyncedRemoteId(entry.id);
-          return remoteId ? updateMemoryEntry(remoteId, entry) : insertMemoryEntry(entry);
+          if (remoteId && (await updateMemoryEntry(remoteId, entry))) return;
+          // remoteId가 없었거나(로컬에서만 있던 글), 있었지만 그 행이 이미
+          // Supabase에서 지워진 경우("내보내며 삭제" 옵션으로 지운 백업을
+          // 다시 가져오는 경우 — 백업 파일의 id가 옛 원격 id 그대로 남아있어
+          // 여기 걸림) — 새 행으로 등록합니다. 성공하면 로컬 저장소의 id도
+          // 새로 발급된 원격 id로 맞춰둬야, 이 글을 다시 열어 고칠 때
+          // insertMemoryEntry가 또 호출되어 중복으로 쌓이는 일이 없습니다
+          // (DiaryWriteForm의 첫 저장 흐름과 동일한 이유).
+          const inserted = await insertMemoryEntry(entry);
+          if (!inserted) return;
+          const newRemoteId = getSyncedRemoteId(entry.id);
+          if (newRemoteId && newRemoteId !== entry.id) {
+            updateSavedDiaryEntryId(entry.id, newRemoteId);
+            confirmSyncedRemoteId(newRemoteId);
+          }
         })
       );
       setDialog({ type: option === "skip" && hasConflict ? "conflictToast" : "done" });

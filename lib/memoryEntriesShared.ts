@@ -42,6 +42,12 @@ export interface MemoryEntryRow {
   id: number;
   title: string;
   text?: string;
+  /** 사용자가 "시간을 붙잡다"에서 고른 날짜(YYYY-MM-DD). created_at(실제 저장
+   * 시각)과 달리 이 값은 그대로 보존됩니다 — 과거 날짜로 소급 작성한 글도
+   * Supabase를 거쳐 다시 읽을 때 원래 고른 날짜 그대로 보여야 합니다.
+   * 이 컬럼이 생기기 전에 저장된 옛 행을 위해 optional로 두고, 없으면
+   * created_at 날짜로 대체합니다. */
+  entry_date?: string | null;
   /** 목록/달력 조회(fetchMemoryEntries)는 화면에 그리지도 않는 이미지 데이터를
    * 아낄 겸 이 컬럼 자체를 select하지 않습니다 — 그때는 undefined입니다.
    * 상세 조회(fetchMemoryEntryById)만 실제 배열을 채워 넣습니다. */
@@ -73,7 +79,7 @@ export function rowToEntry(row: MemoryEntryRow): DiaryEntry {
 
   return {
     id: `${REMOTE_ID_PREFIX}${row.id}`,
-    date: formatLocalDate(localCreatedAt),
+    date: row.entry_date ?? formatLocalDate(localCreatedAt),
     title: row.title,
     content: row.text ?? "",
     mood: isMoodKey(row.mood_key) ? row.mood_key : "none",

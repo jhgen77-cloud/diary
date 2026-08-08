@@ -113,6 +113,9 @@ interface EncodedEntryFields {
    * 저장해두는 값(lib/memoryEntriesShared.ts의 rowToEntry 참고). */
   has_attachment: boolean;
   created_at: string;
+  /** 사용자가 "시간을 붙잡다"에서 고른 날짜 — created_at(실제 저장 시각)과는
+   * 별개로 그대로 저장합니다(memoryEntriesShared.ts 참고). */
+  entry_date: string;
   mood_key: MoodKey;
   weather_key: WeatherKey | null;
 }
@@ -129,6 +132,7 @@ function encodeEntryFields(entry: DiaryEntry): EncodedEntryFields {
     text: entry.content,
     has_attachment: entry.hasAttachment,
     created_at: toLocalWallClockTimestamp(entry.createdAt),
+    entry_date: entry.date,
     mood_key: entry.mood,
     weather_key: entry.weather,
   };
@@ -146,8 +150,15 @@ function encodeEntryFields(entry: DiaryEntry): EncodedEntryFields {
  * 순서로 진행합니다. */
 export async function insertMemoryEntry(entry: DiaryEntry): Promise<boolean> {
   const supabase = createClient();
-  const { title, text, has_attachment: hasAttachment, created_at: createdAt, mood_key: moodKey, weather_key: weatherKey } =
-    encodeEntryFields(entry);
+  const {
+    title,
+    text,
+    has_attachment: hasAttachment,
+    created_at: createdAt,
+    entry_date: entryDate,
+    mood_key: moodKey,
+    weather_key: weatherKey,
+  } = encodeEntryFields(entry);
 
   const { data, error } = await supabase
     .from("memory_entries")
@@ -157,6 +168,7 @@ export async function insertMemoryEntry(entry: DiaryEntry): Promise<boolean> {
       image: null,
       has_attachment: hasAttachment,
       created_at: createdAt,
+      entry_date: entryDate,
       // 처음 저장하는 글이라 아직 한 번도 고친 적이 없습니다 — updated_at은
       // updateMemoryEntry에서만 채워집니다.
       updated_at: null,
@@ -206,8 +218,36 @@ export async function updateMemoryEntry(entryId: string, entry: DiaryEntry): Pro
   if (!Number.isFinite(numericId)) return false;
 
   const supabase = createClient();
-  const { title, text, has_attachment: hasAttachment, created_at: createdAt, mood_key: moodKey, weather_key: weatherKey } =
-    encodeEntryFields(entry);
+
+  // 이 행이 실제로 아직 남아있는지 먼저 확인합니다 — 이미 지워진 id에
+  // update()를 호출하면 Supabase는 매칭되는 행이 없을 뿐 에러 없이 성공을
+  // 돌려줘("0행 갱신"도 성공으로 취급), "내보내며 삭제" 옵션으로 Supabase
+  // 원본까지 지운 뒤 그 백업을 다시 가져오면 화면(로컬 목록)엔 나타나는데
+  // memory_entries 테이블에는 전혀 반영되지 않는 문제가 있었습니다(실제로
+  // 겪은 문제 — 가져온 글의 id가 옛 원격 id 그대로 남아있어, insert 대신
+  // update가 호출되고 그 update가 조용히 아무 행도 못 찾음). 존재하지
+  // 않으면 여기서 false를 돌려줘 호출부(DataRestorePanel)가 insertMemoryEntry로
+  // 새로 등록하도록 합니다.
+  const { data: existing, error: existsError } = await supabase
+    .from("memory_entries")
+    .select("id")
+    .eq("id", numericId)
+    .maybeSingle();
+  if (existsError) {
+    console.error("memory_entries 존재 확인 실패", existsError);
+    return false;
+  }
+  if (!existing) return false;
+
+  const {
+    title,
+    text,
+    has_attachment: hasAttachment,
+    created_at: createdAt,
+    entry_date: entryDate,
+    mood_key: moodKey,
+    weather_key: weatherKey,
+  } = encodeEntryFields(entry);
 
   const folderKey = String(numericId);
   await clearEntryImages(supabase, folderKey);
@@ -227,6 +267,7 @@ export async function updateMemoryEntry(entryId: string, entry: DiaryEntry): Pro
       image: imageUrls,
       has_attachment: hasAttachment,
       created_at: createdAt,
+      entry_date: entryDate,
       // 이 함수가 호출됐다는 것 자체가 "고쳐서 다시 저장"이라는 뜻이라, 호출
       // 시점을 그대로 최종 수정 시각으로 찍습니다(entry.updatedAt을 그대로
       // 믿는 대신 여기서 직접 stamping — DB에 남는 값이 항상 실제 저장
@@ -281,6 +322,20 @@ export function getSyncedRemoteId(localId: string): string | undefined {
   return syncedRemoteIds.get(localId);
 }
 
+/** 로컬 저장소에 남은 글의 id를 임시 uuid에서 원격 id로 바꿔치기(단
+ * updateSavedDiaryEntryId 참고)한 직후 호출합니다. syncedRemoteIds는 "로컬 id
+ * → 원격 id" 매핑인데, 이 바꿔치기로 로컬 저장소에는 더 이상 옛 uuid가 아니라
+ * 원격 id 자체가 남으므로, 그 옛 매핑(uuid → mem-<n>)으로는
+ * suppressSyncedDuplicates가 더 이상 로컬 항목을 찾지 못해 Supabase 조회
+ * 결과의 같은 글을 걸러내지 못합니다 — 로컬·원격 두 항목이 같은 id로 함께
+ * 남아 목록에 중복으로 뜨고, React가 "두 자식이 같은 key를 가짐" 경고를
+ * 냅니다(실제로 겪은 문제). updateMemoryEntry(수정 저장)가 이미 쓰는 것과
+ * 같은 자기 자신 매핑(mem-<n> → mem-<n>)을 여기서도 추가해 이 경우를 마저
+ * 덮습니다. */
+export function confirmSyncedRemoteId(remoteId: string): void {
+  syncedRemoteIds.set(remoteId, remoteId);
+}
+
 /** 글 하나를 "어디에 저장돼 있든" 지웁니다 — 로컬 세션 저장소, 그리고 (원격
  * 글이거나 이번 세션에 Supabase로도 동기화된 로컬 글이면) Supabase까지 함께
  * 지웁니다. 여러 화면(상세 보기, 수정 화면, 내보내기 후 삭제)이 이 함수 하나로
@@ -330,11 +385,36 @@ export async function fetchMemoryEntries(): Promise<DiaryEntry[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("memory_entries")
-    .select("id, title, has_attachment, created_at, mood_key, weather_key")
+    .select("id, title, has_attachment, created_at, entry_date, mood_key, weather_key")
     .order("created_at", { ascending: false });
 
   if (error) {
     console.error("memory_entries 조회 실패", error);
+    return [];
+  }
+  return (data ?? []).map(rowToEntry);
+}
+
+/** "기억의 날개"(내보내기)/"기억의 귀환"(가져오기)처럼 실제 본문·첨부까지
+ * 전부 있어야 하는 화면을 위한 전체 글 조회. fetchMemoryEntries(목록/달력용)와
+ * 똑같이 전체 글을 최신순으로 가져오되, text/image 컬럼까지 함께 select합니다.
+ *
+ * 예전엔 내보내기도 fetchMemoryEntries(목록 조회)를 그대로 재사용했는데, 그
+ * 결과에는 text/image가 아예 없어(row.text가 undefined → rowToEntry가 ""로
+ * 채움) 로컬 세션에 없는(새로고침 이후 Supabase에만 남아있는) 글을 내보내면
+ * 본문·첨부가 통째로 빈 채로 백업 파일에 담겼고, 그 백업을 나중에 다시
+ * 가져오면 Supabase의 원래 글까지 빈 본문으로 덮어써지는 심각한 데이터 유실
+ * 문제가 있었습니다(실제로 겪은 문제 — Supabase text 컬럼이 비어있는 것으로
+ * 확인함). */
+export async function fetchMemoryEntriesFull(): Promise<DiaryEntry[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("memory_entries")
+    .select("id, title, text, image, created_at, entry_date, updated_at, mood_key, weather_key")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("memory_entries 전체(본문 포함) 조회 실패", error);
     return [];
   }
   return (data ?? []).map(rowToEntry);
@@ -365,7 +445,7 @@ export async function fetchMemoryEntryById(entryId: string): Promise<DiaryEntry 
   const supabase = createClient();
   const { data, error } = await supabase
     .from("memory_entries")
-    .select("id, title, text, image, created_at, updated_at, mood_key, weather_key")
+    .select("id, title, text, image, created_at, entry_date, updated_at, mood_key, weather_key")
     .eq("id", numericId)
     .maybeSingle();
 
@@ -414,6 +494,37 @@ interface UseMemoryEntriesResult {
   loading: boolean;
 }
 
+/** useMemoryEntries/useMemoryEntriesFull이 공유하는 실제 구현. 어떤 조회
+ * 함수(fetcher)를 쓰느냐만 다르고, 로딩 상태 관리와 "이미 로컬에 반영된
+ * 글의 원격 사본 숨기기/삭제된 글 걸러내기"는 동일합니다. */
+function useMemoryEntriesWith(
+  fetcher: () => Promise<DiaryEntry[]>,
+  localEntries: DiaryEntry[]
+): UseMemoryEntriesResult {
+  const [entries, setEntries] = useState<DiaryEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetcher().then((fetched) => {
+      if (cancelled) return;
+      setEntries(fetched);
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // fetcher는 모듈 top-level 함수(fetchMemoryEntries/fetchMemoryEntriesFull)라
+    // 참조가 항상 안정적입니다 — 마운트 시 한 번만 불러오면 됩니다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return {
+    entries: suppressDeletedEntries(suppressSyncedDuplicates(entries, localEntries)),
+    loading,
+  };
+}
+
 /** "그날을 거닐다"/달력 화면이 새로고침 후에도 비어 보이지 않도록, 마운트 시
  * Supabase에서 글 목록을 한 번 불러옵니다. 같은 세션 안에서 새로 저장한
  * 글은 useSavedDiaryEntries(로컬)가 즉시 반영하므로, 저장할 때마다 다시
@@ -422,27 +533,19 @@ interface UseMemoryEntriesResult {
  * localEntries(useSavedDiaryEntries 결과)를 함께 받아, 저장 직후 이미
  * 로컬에 반영된 글이 이 화면이 나중에(다시 마운트되며) Supabase에서 같은
  * 글을 또 불러와 두 번 보이는 것을 막습니다 — 로컬 항목이 아직 화면에
- * 남아있는 동안만 그 글의 원격 사본을 걸러냅니다. */
+ * 남아있는 동안만 그 글의 원격 사본을 걸러냅니다.
+ *
+ * 목록/달력처럼 본문을 화면에 그리지 않는 곳에서만 씁니다 — 본문/첨부까지
+ * 필요하면(내보내기/가져오기) useMemoryEntriesFull을 대신 쓰세요. */
 export function useMemoryEntries(localEntries: DiaryEntry[]): UseMemoryEntriesResult {
-  const [entries, setEntries] = useState<DiaryEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  return useMemoryEntriesWith(fetchMemoryEntries, localEntries);
+}
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchMemoryEntries().then((fetched) => {
-      if (cancelled) return;
-      setEntries(fetched);
-      setLoading(false);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return {
-    entries: suppressDeletedEntries(suppressSyncedDuplicates(entries, localEntries)),
-    loading,
-  };
+/** useMemoryEntries와 동일하지만 본문(text)/첨부(image)까지 포함해 불러옵니다
+ * (fetchMemoryEntriesFull 참고) — "기억의 날개"(내보내기)/"기억의 귀환"
+ * (가져오기)처럼 실제 데이터 전체가 필요한 화면에서 씁니다. */
+export function useMemoryEntriesFull(localEntries: DiaryEntry[]): UseMemoryEntriesResult {
+  return useMemoryEntriesWith(fetchMemoryEntriesFull, localEntries);
 }
 
 /** id가 이 앱에서 만든 로컬(uuid) id가 아니라 Supabase에서 읽어온 글의

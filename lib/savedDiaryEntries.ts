@@ -63,6 +63,25 @@ export function removeSavedDiaryEntry(id: string) {
   notify();
 }
 
+/** 로컬에 저장된 글의 id만 다른 값으로 바꿔치기합니다(내용은 그대로 둠).
+ * 새 글을 처음 Supabase에 반영하면 그 글의 진짜 id는 Supabase가 발급한
+ * "mem-<n>"이 되는데, 이 함수로 로컬 저장소의 id도 그 값으로 맞춰두지 않으면
+ * 이후 이 글을 다시 열어 고칠 때 로컬 사본이 여전히 옛 임시 id로 남아있어
+ * DiaryWriteForm이 "이미 Supabase에 있는 글을 고치는 것"으로 인식하지 못하고
+ * 다시 insertMemoryEntry를 호출해 같은 글이 Supabase에 중복으로 쌓이는
+ * 문제가 있었습니다(실제로 겪은 문제 — 저장 → 목록에서 다시 열어 수정 →
+ * 저장을 반복하면 매번 새 글이 하나씩 더 생김). oldId를 찾지 못하면 아무
+ * 일도 하지 않습니다. */
+export function updateSavedDiaryEntryId(oldId: string, newId: string) {
+  if (typeof window === "undefined") return;
+  const index = entries.findIndex((e) => e.id === oldId);
+  if (index === -1) return;
+  const next = [...entries];
+  next[index] = { ...next[index], id: newId };
+  entries = next;
+  notify();
+}
+
 /** 저장된 일기를 전부 지웁니다 ('기억의 소멸' — 데이터 초기화). */
 export function clearSavedDiaryEntries() {
   if (typeof window === "undefined") return;

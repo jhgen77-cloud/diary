@@ -10,7 +10,7 @@ import DataExportSplitOptions, {
 import DataExportDateRangeSection from "@/components/DataExportDateRangeSection";
 import { letterIIcon, warningSignIcon } from "@/lib/diaryIcons";
 import { useSavedDiaryEntries } from "@/lib/savedDiaryEntries";
-import { useMemoryEntries, deleteDiaryEntryEverywhere } from "@/lib/memoryEntries";
+import { useMemoryEntriesFull, deleteDiaryEntryEverywhere } from "@/lib/memoryEntries";
 import {
   type DateValue,
   type ExportFormat,
@@ -31,8 +31,14 @@ export default function DataExportPanel() {
   const savedEntries = useSavedDiaryEntries();
   // "그날을 거닐다"와 동일하게, Supabase에 저장된 글도 함께 내보내기 대상에
   // 포함합니다 — 로컬 글만 대상으로 하면 새로고침 이후엔 내보낼 게 없는
-  // 것처럼 보였습니다.
-  const { entries: remoteEntries } = useMemoryEntries(savedEntries);
+  // 것처럼 보였습니다. 목록 화면(useMemoryEntries)과 달리 본문/첨부까지
+  // 실제로 파일에 담아야 해서 useMemoryEntriesFull을 씁니다 — 목록용 조회는
+  // text/image 컬럼을 아예 select하지 않아, 로컬 세션에 없는(새로고침 이후
+  // Supabase에만 남아있는) 글을 그걸로 내보내면 본문·첨부가 통째로 빈 채로
+  // 백업 파일에 담기는 심각한 데이터 유실 문제가 있었습니다(실제로 겪은
+  // 문제 — 그 백업을 나중에 다시 가져오면 Supabase 원본까지 빈 본문으로
+  // 덮어써짐).
+  const { entries: remoteEntries } = useMemoryEntriesFull(savedEntries);
   const entries = [...savedEntries, ...remoteEntries];
 
   const [format, setFormat] = useState<ExportFormat>("zip");
@@ -84,18 +90,23 @@ export default function DataExportPanel() {
 
     setIsExporting(true);
     try {
-      if (format === "zip") {
-        await exportEntriesAsZip(dirHandle, targets, zipSplitOption);
-      } else {
-        await exportEntriesAsTxt(dirHandle, targets, txtSplitOption);
-      }
+      // exportEntriesAs*가 실제로 파일에 담긴 일기 개수를 돌려줍니다 — "날짜별"
+      // 옵션에서 같은 날짜의 중복 글(예전 "수정하면 새 글로 저장되던" 버그로
+      // 남은 데이터)을 하나로 정리하고 나면 targets.length보다 적을 수 있어,
+      // 안내 문구가 실제 생성된 파일 수와 어긋나지 않도록 이 값을 그대로
+      // 씁니다(예전엔 targets.length를 그대로 써서 "3개 파일이 만들어졌는데
+      // 4개를 내보냈다"고 잘못 안내하는 문제가 있었습니다).
+      const exportedCount =
+        format === "zip"
+          ? await exportEntriesAsZip(dirHandle, targets, zipSplitOption)
+          : await exportEntriesAsTxt(dirHandle, targets, txtSplitOption);
       if (deleteAfterExport) {
         // 로컬 사본뿐 아니라 Supabase 쪽도 함께 지웁니다 — 로컬만 지우면
         // "그날을 거닐다"에 Supabase 사본이 그대로 남아 보이는 문제가
         // 있었습니다(실제로 겪은 문제).
         await Promise.all(targets.map((entry) => deleteDiaryEntryEverywhere(entry.id)));
       }
-      setNotice({ icon: letterIIcon, message: `일기 ${targets.length}개를 내보냈습니다.` });
+      setNotice({ icon: letterIIcon, message: `일기 ${exportedCount}개를 내보냈습니다.` });
     } catch (error) {
       console.error("내보내기 실패", error);
       setNotice({ icon: warningSignIcon, message: "내보내는 중 오류가 발생했습니다." });

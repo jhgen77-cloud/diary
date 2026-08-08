@@ -14,7 +14,7 @@ export async function fetchMemoryEntriesServer(): Promise<DiaryEntry[]> {
 
   const { data, error } = await supabase
     .from("memory_entries")
-    .select("id, title, has_attachment, created_at, mood_key, weather_key")
+    .select("id, title, has_attachment, created_at, entry_date, mood_key, weather_key")
     .order("created_at", { ascending: false });
 
   if (error) {

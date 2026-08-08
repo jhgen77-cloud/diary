@@ -71,9 +71,16 @@ interface ExportGroup {
   entries: DiaryEntry[];
 }
 
+// entry.date만으로 "date" 분할 파일명을 지을 때, 같은 날짜의 글이 둘 이상이면
+// 어느 쪽을 남길지 고르는 기준. 마지막으로 고쳐 저장한 시각(updatedAt, 없으면
+// 최초 저장 시각 createdAt)이 더 최근인 쪽을 남깁니다.
+function entryTimestamp(entry: DiaryEntry) {
+  return entry.updatedAt ?? entry.createdAt;
+}
+
 /** splitOption에 따라 entries를 파일 단위 그룹으로 묶습니다. ZIP/TXT 내보내기가
  * 공유하는 '파일 생성 옵션'의 핵심 로직이며, 실제 파일명/내용 생성은 각 형식
- * 쪽(groupEntriesForTxt/exportEntriesAsZip)에서 이어서 담당합니다. */
+ * 쪽(groupEntriesForTxtFiles/groupEntriesForZipFiles)에서 이어서 담당합니다. */
 function groupEntriesForExport(
   entries: DiaryEntry[],
   splitOption: ExportSplitOption
@@ -84,9 +91,25 @@ function groupEntriesForExport(
     return [{ key: "", entries: sorted }];
   }
   if (splitOption === "date") {
-    // 하루에 일기는 하나만 저장할 수 있어(DiaryWriteForm에서 저장 시 강제)
-    // entry.date만으로도 파일명이 겹치지 않습니다.
-    return sorted.map((entry) => ({ key: entry.date, entries: [entry] }));
+    // 원래는 "하루에 일기는 하나만 저장할 수 있어 entry.date만으로도 파일명이
+    // 겹치지 않는다"는 가정이었지만, 글 수정이 새 글로 저장되던 예전 버그
+    // 탓에 같은 날짜의 글이 두 개 이상 남아있는 경우가 실제로 있었습니다.
+    // 그 상태로 그대로 내보내면 같은 파일명을 두 번 써 뒤 파일이 앞 파일을
+    // 조용히 덮어쓰면서, 실제로 생성된 파일 수보다 "내보냈다"고 안내하는
+    // 개수가 더 많아지는 문제가 있었습니다(내보내기 완료 안내 문구가 실제
+    // 파일 개수와 어긋남). 같은 날짜끼리는 가장 최근에 고친 글 하나만 남겨
+    // 파일명 충돌 자체를 없앱니다.
+    const latestByDate = new Map<string, DiaryEntry>();
+    for (const entry of sorted) {
+      const current = latestByDate.get(entry.date);
+      if (!current || entryTimestamp(entry) >= entryTimestamp(current)) {
+        latestByDate.set(entry.date, entry);
+      }
+    }
+    return Array.from(latestByDate.values()).map((entry) => ({
+      key: entry.date,
+      entries: [entry],
+    }));
   }
 
   // "year" | "year-month" — 연도(또는 연,월) 단위로 묶습니다.
@@ -101,13 +124,24 @@ function groupEntriesForExport(
   return Array.from(groups.entries()).map(([key, group]) => ({ key, entries: group }));
 }
 
+/** 실제로 파일에 담기는(=위 그룹 전체를 펼친) 일기 개수. "date" 옵션에서 같은
+ * 날짜의 중복 글을 하나로 정리한 뒤의 값이라, 내보내기 완료 안내 문구에
+ * targets.length 대신 이 값을 써야 실제 생성된 파일 수와 문구가 어긋나지
+ * 않습니다. */
+function countGroupedEntries(groups: ExportGroup[]) {
+  return groups.reduce((total, group) => total + group.entries.length, 0);
+}
+
 interface TxtFile {
   filename: string;
   content: string;
 }
 
-function groupEntriesForTxt(entries: DiaryEntry[], splitOption: ExportSplitOption): TxtFile[] {
-  return groupEntriesForExport(entries, splitOption).map((group) => ({
+function groupEntriesForTxtFiles(
+  groups: ExportGroup[],
+  splitOption: ExportSplitOption
+): TxtFile[] {
+  return groups.map((group) => ({
     filename:
       splitOption === "single"
         ? "diary-export.txt"
@@ -119,19 +153,24 @@ function groupEntriesForTxt(entries: DiaryEntry[], splitOption: ExportSplitOptio
 }
 
 /** TXT 형식으로 내보냅니다. 이미지는 제외하고 텍스트 데이터만 씁니다(암호화된 일기를
- * 걸러내는 기능은, 아직 암호화 기능 자체가 없어 자리만 비워둡니다). */
+ * 걸러내는 기능은, 아직 암호화 기능 자체가 없어 자리만 비워둡니다).
+ * 반환값은 실제로 파일에 담긴 일기 개수(완료 안내 문구에 사용) — "date"
+ * 옵션에서 같은 날짜 중복 글을 정리한 뒤의 값이라 entries.length와 다를 수
+ * 있습니다. */
 export async function exportEntriesAsTxt(
   dirHandle: FileSystemDirectoryHandle,
   entries: DiaryEntry[],
   splitOption: ExportSplitOption
-) {
-  const files = groupEntriesForTxt(entries, splitOption);
+): Promise<number> {
+  const groups = groupEntriesForExport(entries, splitOption);
+  const files = groupEntriesForTxtFiles(groups, splitOption);
   for (const file of files) {
     const fileHandle = await dirHandle.getFileHandle(file.filename, { create: true });
     const writable = await fileHandle.createWritable();
     await writable.write(file.content);
     await writable.close();
   }
+  return countGroupedEntries(groups);
 }
 
 function escapeXml(value: string) {
@@ -233,8 +272,8 @@ interface ZipFile {
   entries: DiaryEntry[];
 }
 
-function groupEntriesForZip(entries: DiaryEntry[], splitOption: ExportSplitOption): ZipFile[] {
-  return groupEntriesForExport(entries, splitOption).map((group) => ({
+function groupEntriesForZipFiles(groups: ExportGroup[], splitOption: ExportSplitOption): ZipFile[] {
+  return groups.map((group) => ({
     filename: splitOption === "single" ? buildZipFilename() : `diary-backup-${group.key}.zip`,
     entries: group.entries,
   }));
@@ -262,14 +301,17 @@ async function writeZipFile(dirHandle: FileSystemDirectoryHandle, file: ZipFile)
 /** ZIP 형식으로 내보냅니다. 일기 메타데이터/본문은 diary.xml에, 첨부 이미지는
  * images/ 폴더에 담아 [가져오기]로 다시 복원할 수 있는 형태로 묶습니다.
  * splitOption에 따라 TXT와 동일하게 하나의 파일로 묶거나 연도/연,월/날짜별로
- * 나눠 여러 개의 zip 파일을 생성합니다. */
+ * 나눠 여러 개의 zip 파일을 생성합니다. 반환값은 exportEntriesAsTxt와 동일하게
+ * 실제로 파일에 담긴 일기 개수입니다. */
 export async function exportEntriesAsZip(
   dirHandle: FileSystemDirectoryHandle,
   entries: DiaryEntry[],
   splitOption: ExportSplitOption
-) {
-  const files = groupEntriesForZip(entries, splitOption);
+): Promise<number> {
+  const groups = groupEntriesForExport(entries, splitOption);
+  const files = groupEntriesForZipFiles(groups, splitOption);
   for (const file of files) {
     await writeZipFile(dirHandle, file);
   }
+  return countGroupedEntries(groups);
 }
