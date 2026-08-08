@@ -6,6 +6,7 @@ import type { DiaryEntry } from "@/lib/mockDiaryEntries";
 import { removeSavedDiaryEntry } from "@/lib/savedDiaryEntries";
 import type { MoodKey, WeatherKey } from "@/lib/diaryIcons";
 import { REMOTE_ID_PREFIX, rowToEntry } from "@/lib/memoryEntriesShared";
+import { onUserIdChange, useCurrentUserId } from "@/lib/authUserId";
 
 type SupabaseClient = ReturnType<typeof createClient>;
 
@@ -38,6 +39,18 @@ const deletedRemoteIds = new Set<string>();
 // 시점 이후 서버가 내려주는 원격 글 스냅샷을 통째로 무시합니다 — 그 뒤에
 // 새로 쓴 글은 로컬 저장소로 즉시 반영되니 영향이 없습니다.
 let allRemoteDataCleared = false;
+
+// 로그인한 계정이 실제로 바뀌면(로그아웃 후 다른 계정으로 로그인 등), 위
+// 캐시들은 전부 이전 계정 기준이라 그대로 두면 다른 사용자의 글 id가 이번
+// 계정에도 "이미 지워짐"/"이미 동기화됨"으로 잘못 걸러질 수 있습니다 —
+// 계정이 바뀔 때마다 전부 비웁니다.
+if (typeof window !== "undefined") {
+  onUserIdChange(() => {
+    syncedRemoteIds.clear();
+    deletedRemoteIds.clear();
+    allRemoteDataCleared = false;
+  });
+}
 
 // entry.createdAt은 new Date().toISOString()으로 만든 UTC 기준 문자열입니다.
 // 이 앱은 로컬(KST) 사용을 기준으로 하는데, Supabase 프로젝트의 세션
@@ -160,12 +173,16 @@ export async function insertMemoryEntry(entry: DiaryEntry): Promise<boolean> {
     weather_key: weatherKey,
   } = encodeEntryFields(entry);
 
-  // "본인 글만 접근 가능" RLS 정책을 곧 도입할 예정이라, 작성 시점에 로그인한
-  // 사용자의 id를 함께 저장해둡니다(로그인 안 된 상태로 저장되는 경우는
-  // 현재 없지만, 방어적으로 null 허용).
+  // 글마다 작성자를 저장해둬야 사용자별로 데이터를 분리해서 불러올 수
+  // 있습니다. user_id는 NOT NULL이라, 로그인 안 된 상태(정상 흐름상 일어나지
+  // 않지만 방어적으로)면 저장 자체를 하지 않습니다.
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) {
+    console.error("memory_entries 저장 실패: 로그인한 사용자를 확인할 수 없습니다.");
+    return false;
+  }
 
   const { data, error } = await supabase
     .from("memory_entries")
@@ -181,7 +198,7 @@ export async function insertMemoryEntry(entry: DiaryEntry): Promise<boolean> {
       updated_at: null,
       mood_key: moodKey,
       weather_key: weatherKey,
-      user_id: user?.id ?? null,
+      user_id: user.id,
     })
     .select("id")
     .single();
@@ -227,19 +244,26 @@ export async function updateMemoryEntry(entryId: string, entry: DiaryEntry): Pro
 
   const supabase = createClient();
 
-  // 이 행이 실제로 아직 남아있는지 먼저 확인합니다 — 이미 지워진 id에
-  // update()를 호출하면 Supabase는 매칭되는 행이 없을 뿐 에러 없이 성공을
-  // 돌려줘("0행 갱신"도 성공으로 취급), "내보내며 삭제" 옵션으로 Supabase
-  // 원본까지 지운 뒤 그 백업을 다시 가져오면 화면(로컬 목록)엔 나타나는데
-  // memory_entries 테이블에는 전혀 반영되지 않는 문제가 있었습니다(실제로
-  // 겪은 문제 — 가져온 글의 id가 옛 원격 id 그대로 남아있어, insert 대신
-  // update가 호출되고 그 update가 조용히 아무 행도 못 찾음). 존재하지
-  // 않으면 여기서 false를 돌려줘 호출부(DataRestorePanel)가 insertMemoryEntry로
-  // 새로 등록하도록 합니다.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  // 이 행이 실제로 아직 남아있는지(그리고 내 글이 맞는지) 먼저 확인합니다 —
+  // 이미 지워진 id나 다른 사용자의 글에 update()를 호출하면 Supabase는
+  // 매칭되는 행이 없을 뿐 에러 없이 성공을 돌려줘("0행 갱신"도 성공으로
+  // 취급), "내보내며 삭제" 옵션으로 Supabase 원본까지 지운 뒤 그 백업을
+  // 다시 가져오면 화면(로컬 목록)엔 나타나는데 memory_entries 테이블에는
+  // 전혀 반영되지 않는 문제가 있었습니다(실제로 겪은 문제 — 가져온 글의
+  // id가 옛 원격 id 그대로 남아있어, insert 대신 update가 호출되고 그
+  // update가 조용히 아무 행도 못 찾음). 존재하지 않으면(또는 내 글이
+  // 아니면) 여기서 false를 돌려줘 호출부(DataRestorePanel)가
+  // insertMemoryEntry로 새로 등록하도록 합니다.
   const { data: existing, error: existsError } = await supabase
     .from("memory_entries")
     .select("id")
     .eq("id", numericId)
+    .eq("user_id", user.id)
     .maybeSingle();
   if (existsError) {
     console.error("memory_entries 존재 확인 실패", existsError);
@@ -284,7 +308,8 @@ export async function updateMemoryEntry(entryId: string, entry: DiaryEntry): Pro
       mood_key: moodKey,
       weather_key: weatherKey,
     })
-    .eq("id", numericId);
+    .eq("id", numericId)
+    .eq("user_id", user.id);
 
   if (error) {
     console.error("memory_entries 수정 실패", error);
@@ -304,9 +329,30 @@ export async function deleteMemoryEntry(entryId: string): Promise<boolean> {
   if (!Number.isFinite(numericId)) return false;
 
   const supabase = createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  // 내 글이 맞는지 먼저 확인합니다 — id만으로 지우면 다른 사용자의 글 id를
+  // 알아내(순차 증가값이라 추측 가능) Storage 이미지까지 지워버릴 수
+  // 있습니다.
+  const { data: existing } = await supabase
+    .from("memory_entries")
+    .select("id")
+    .eq("id", numericId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!existing) return false;
+
   await clearEntryImages(supabase, String(numericId));
 
-  const { error } = await supabase.from("memory_entries").delete().eq("id", numericId);
+  const { error } = await supabase
+    .from("memory_entries")
+    .delete()
+    .eq("id", numericId)
+    .eq("user_id", user.id);
 
   if (error) {
     console.error("memory_entries 삭제 실패", error);
@@ -356,21 +402,35 @@ export async function deleteDiaryEntryEverywhere(id: string): Promise<void> {
   if (remoteId) await deleteMemoryEntry(remoteId);
 }
 
-/** Supabase에 저장된 글을 전부 지웁니다("기억의 소멸" — 데이터 전체 초기화용).
- * diary-images 버킷에 올려둔 첨부 이미지도 폴더(글 id)별로 모두 비웁니다. */
+/** 로그인한 사용자 본인의 Supabase 글을 전부 지웁니다("기억의 소멸" — 데이터
+ * 전체 초기화용). diary-images 버킷에 올려둔 첨부 이미지도 그 글들의
+ * 폴더(글 id)별로 모두 비웁니다.
+ *
+ * 예전엔 버킷 전체를 나열해 통째로 비우고 테이블도 조건 없이(gte("id", 0))
+ * 전부 지웠는데, 이제 글마다 작성자가 구분되므로 그렇게 하면 다른 사용자의
+ * 글/이미지까지 함께 지워버립니다 — 반드시 내 글로만 좁혀야 합니다. */
 export async function clearAllRemoteDiaryData(): Promise<boolean> {
   const supabase = createClient();
 
-  const { data: folders, error: listError } = await supabase.storage
-    .from(DIARY_IMAGES_BUCKET)
-    .list();
-  if (listError) {
-    console.error("첨부 이미지 폴더 목록 조회 실패", listError);
-  } else if (folders) {
-    await Promise.all(folders.map((folder) => clearEntryImages(supabase, folder.name)));
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data: myEntries, error: listEntriesError } = await supabase
+    .from("memory_entries")
+    .select("id")
+    .eq("user_id", user.id);
+  if (listEntriesError) {
+    console.error("memory_entries 목록 조회 실패", listEntriesError);
+    return false;
   }
 
-  const { error } = await supabase.from("memory_entries").delete().gte("id", 0);
+  await Promise.all(
+    (myEntries ?? []).map((entry) => clearEntryImages(supabase, String(entry.id)))
+  );
+
+  const { error } = await supabase.from("memory_entries").delete().eq("user_id", user.id);
 
   if (error) {
     console.error("Supabase 데이터 초기화 실패", error);
@@ -391,9 +451,15 @@ export async function clearAllRemoteDiaryData(): Promise<boolean> {
  * 불필요하게 전부 로드하고 있었습니다(실제로 겪은 문제). */
 export async function fetchMemoryEntries(): Promise<DiaryEntry[]> {
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
   const { data, error } = await supabase
     .from("memory_entries")
     .select("id, title, has_attachment, created_at, entry_date, mood_key, weather_key")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -416,9 +482,15 @@ export async function fetchMemoryEntries(): Promise<DiaryEntry[]> {
  * 확인함). */
 export async function fetchMemoryEntriesFull(): Promise<DiaryEntry[]> {
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
   const { data, error } = await supabase
     .from("memory_entries")
     .select("id, title, text, image, created_at, entry_date, updated_at, mood_key, weather_key")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -451,10 +523,16 @@ export async function fetchMemoryEntryById(entryId: string): Promise<DiaryEntry 
   if (!Number.isFinite(numericId)) return null;
 
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
   const { data, error } = await supabase
     .from("memory_entries")
     .select("id, title, text, image, created_at, entry_date, updated_at, mood_key, weather_key")
     .eq("id", numericId)
+    .eq("user_id", user.id)
     .maybeSingle();
 
   if (error) {
@@ -509,26 +587,38 @@ function useMemoryEntriesWith(
   fetcher: () => Promise<DiaryEntry[]>,
   localEntries: DiaryEntry[]
 ): UseMemoryEntriesResult {
+  // 로그인한 계정이 바뀌면(로그아웃 후 다른 계정으로 로그인 등) 이전 계정
+  // 기준으로 불러온 목록이 남아있으면 안 되므로, userId를 의존성에 넣어
+  // 계정이 바뀔 때마다 처음부터 다시 불러옵니다.
+  const userId = useCurrentUserId();
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  // 마지막으로 fetcher 결과를 반영한 시점의 userId를 기록해뒀다가 현재
+  // userId와 비교하는 것으로 loading 여부를 판단합니다 — effect 안에서
+  // setLoading(true)를 동기 호출하지 않기 위함입니다(react-hooks 린트 규칙:
+  // effect 본문에서 곧바로 setState하면 안 됨).
+  const [loadedFor, setLoadedFor] = useState<{ userId: typeof userId } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     fetcher().then((fetched) => {
       if (cancelled) return;
       setEntries(fetched);
-      setLoading(false);
+      setLoadedFor({ userId });
     });
     return () => {
       cancelled = true;
     };
     // fetcher는 모듈 top-level 함수(fetchMemoryEntries/fetchMemoryEntriesFull)라
-    // 참조가 항상 안정적입니다 — 마운트 시 한 번만 불러오면 됩니다.
+    // 참조가 항상 안정적이라 deps에서 뺍니다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userId]);
+
+  const loading = loadedFor === null || loadedFor.userId !== userId;
 
   return {
-    entries: suppressDeletedEntries(suppressSyncedDuplicates(entries, localEntries)),
+    entries: loading
+      ? []
+      : suppressDeletedEntries(suppressSyncedDuplicates(entries, localEntries)),
     loading,
   };
 }
@@ -574,10 +664,20 @@ interface UseRemoteMemoryEntryResult {
  * (DiaryEntryDetail 참고). */
 export function useRemoteMemoryEntry(id: string | null | undefined): UseRemoteMemoryEntryResult {
   const remoteId = isRemoteEntryId(id) ? (id as string) : null;
+  // 계정이 바뀌면(드문 경우지만, 상세 화면을 띄운 채로 로그아웃 후 다른
+  // 계정으로 로그인) 이전 계정 기준으로 불러온 글이 남아있지 않도록 다시
+  // 불러옵니다 — fetchMemoryEntryById 자체도 매번 현재 사용자 소유인지 다시
+  // 확인하지만, userId가 안 바뀌면 effect가 재실행되지 않아 화면이 갱신되지
+  // 않습니다.
+  const userId = useCurrentUserId();
   const [entry, setEntry] = useState<DiaryEntry | null>(null);
-  // 마지막으로 조회를 마친 id. remoteId와 다르면 아직 그 id의 결과를 기다리는
-  // 중이라는 뜻이라 loading 여부를 여기서 판단합니다.
-  const [loadedForId, setLoadedForId] = useState<string | null>(null);
+  // 마지막으로 조회를 마친 (id, userId) 조합. 둘 중 하나라도 다르면 아직 그
+  // 조합의 결과를 기다리는 중이라는 뜻이라 loading 여부를 여기서 판단합니다
+  // (effect 안에서 setState를 동기 호출하지 않기 위해, 별도 loading state
+  // 대신 이 비교로 대신합니다).
+  const [loadedFor, setLoadedFor] = useState<{ remoteId: string; userId: typeof userId } | null>(
+    null
+  );
 
   useEffect(() => {
     if (!remoteId) return;
@@ -585,14 +685,15 @@ export function useRemoteMemoryEntry(id: string | null | undefined): UseRemoteMe
     fetchMemoryEntryById(remoteId).then((fetched) => {
       if (cancelled) return;
       setEntry(fetched);
-      setLoadedForId(remoteId);
+      setLoadedFor({ remoteId, userId });
     });
     return () => {
       cancelled = true;
     };
-  }, [remoteId]);
+  }, [remoteId, userId]);
 
   if (!remoteId) return { entry: null, loading: false };
-  const loading = loadedForId !== remoteId;
+  const loading =
+    loadedFor === null || loadedFor.remoteId !== remoteId || loadedFor.userId !== userId;
   return { entry: loading ? null : entry, loading };
 }

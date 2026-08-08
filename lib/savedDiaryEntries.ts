@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import type { DiaryEntry } from "@/lib/mockDiaryEntries";
+import { onUserIdChange } from "@/lib/authUserId";
 
 // Supabase 연동 전까지 쓰는 임시 저장소입니다. 예전에는 localStorage(키
 // "diary:savedEntries")에 영속했지만, 지금은 탭 세션 동안만 유지되는 메모리
@@ -26,6 +27,13 @@ if (typeof window !== "undefined") {
   } catch {
     // 접근 자체가 막힌 환경(프라이빗 모드 등)이면 지울 것도 없으니 무시합니다.
   }
+
+  // 로그인한 계정이 실제로 바뀌면(로그아웃 후 다른 계정으로 로그인 등), 이번
+  // 탭 세션 동안 저장해둔 글이 이전 계정 것이라 그대로 두면 새 계정 화면에
+  // 남의(이전 사용자) 글이 섞여 보일 수 있습니다 — 계정이 바뀔 때마다 비웁니다.
+  onUserIdChange(() => {
+    clearSavedDiaryEntries();
+  });
 }
 
 function getSnapshot(): DiaryEntry[] {
