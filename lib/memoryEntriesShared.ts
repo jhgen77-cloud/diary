@@ -50,6 +50,9 @@ export interface MemoryEntryRow {
    * 조회에서 hasAttachment를 계산하는 데 씁니다. */
   has_attachment?: boolean;
   created_at: string;
+  /** 한 번도 수정한 적 없으면 null. created_at과 같은 방식(로컬 벽시계 값을
+   * 시간대 오프셋 없이 그대로 저장)으로 들어있습니다. */
+  updated_at?: string | null;
   mood_key: string;
   weather_key: string | null;
 }
@@ -66,6 +69,7 @@ export interface MemoryEntryRow {
  * 그대로 씁니다. */
 export function rowToEntry(row: MemoryEntryRow): DiaryEntry {
   const localCreatedAt = fromLocalWallClockTimestamp(row.created_at);
+  const localUpdatedAt = row.updated_at ? fromLocalWallClockTimestamp(row.updated_at) : null;
 
   return {
     id: `${REMOTE_ID_PREFIX}${row.id}`,
@@ -77,6 +81,7 @@ export function rowToEntry(row: MemoryEntryRow): DiaryEntry {
     hasAttachment: Array.isArray(row.image) ? row.image.length > 0 : !!row.has_attachment,
     images: row.image ?? [],
     createdAt: localCreatedAt.toISOString(),
+    updatedAt: localUpdatedAt ? localUpdatedAt.toISOString() : undefined,
     source: "remote",
   };
 }

@@ -17,6 +17,12 @@ interface DiaryWriteToolbarProps {
   onOpenAttach: () => void;
   saved: boolean;
   hasAttachment: boolean;
+  /** 수정 화면에서 원본 글(또는 중복 날짜 검사에 쓰는 전체 목록)을 아직 다
+   * 불러오지 못한 동안 true — 이때 저장하면 entryId/date가 아직 새 글
+   * 기본값이라 수정이 아니라 새 글로 저장되며, 원본과 같은 날짜에 중복
+   * 저장되는 문제가 있었습니다(실제로 겪은 문제). 그 동안은 저장 버튼을
+   * 눌러도 반응하지 않게 막습니다. */
+  saveDisabled?: boolean;
 }
 
 const actionButtonClass =
@@ -28,10 +34,16 @@ export default function DiaryWriteToolbar({
   onOpenAttach,
   saved,
   hasAttachment,
+  saveDisabled = false,
 }: DiaryWriteToolbarProps) {
   return (
     <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-      <button type="button" onClick={onSave} className={actionButtonClass}>
+      <button
+        type="button"
+        onClick={onSave}
+        disabled={saveDisabled}
+        className={`${actionButtonClass} ${saveDisabled ? "pointer-events-none opacity-40" : ""}`}
+      >
         <span className="relative aspect-square h-5 shrink-0 sm:h-6">
           <Image
             src={saved ? saveSavedIcon : saveIcon}

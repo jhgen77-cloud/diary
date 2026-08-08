@@ -13,6 +13,10 @@ export interface DiaryEntry {
   images: string[];
   /** 최초로 저장된 시각 (ISO 문자열) — 상세 보기의 "작성된 일기입니다" 문구에 사용 */
   createdAt: string;
+  /** 마지막으로 고쳐 저장한 시각 (ISO 문자열) — 한 번도 수정한 적 없으면 없음.
+   * 상세 보기에서 "OO에 수정되었습니다" 문구로 원본이 바뀌었음을 알리는 데
+   * 씁니다. */
+  updatedAt?: string;
   /** "시간을 붙잡다"에서 저장할 당시 적용돼 있던 환경 설정(제목/본문 각각).
    * 그 모달에서만 쓰는 값이라 선택 필드이며, 이 값이 없는(옛/다른 경로로 만든)
    * 일기는 기본 스타일로 표시됩니다. */
@@ -45,6 +49,14 @@ export const mockDiaryEntries = sortDiaryEntriesByDateDesc(RAW_ENTRIES);
 
 export function getDiaryEntryById(id: string) {
   return mockDiaryEntries.find((entry) => entry.id === id);
+}
+
+/** 이 글을 아직 수정할 수 있는지 — 작성한 날짜(entry.date)가 오늘이 아니면
+ * (하루가 지나면) 더 이상 고칠 수 없다는 정책입니다. "쓴 지 24시간"이 아니라
+ * 그 날짜의 자정이 지나는 순간 잠깁니다(하루에 하나만 쓸 수 있는 일기라는
+ * 이 앱의 기본 전제와 맞춰, "그날" 안에서만 고칠 수 있게 함). */
+export function isDiaryEntryEditable(entry: DiaryEntry): boolean {
+  return entry.date === formatLocalDate(new Date());
 }
 
 export function formatDiaryDate(dateStr: string) {

@@ -27,7 +27,7 @@ import {
   storedImageToFile,
   type AttachedImage,
 } from "@/lib/imageAttachment";
-import { formatLocalDate, type DiaryEntry } from "@/lib/mockDiaryEntries";
+import { formatLocalDate, isDiaryEntryEditable, type DiaryEntry } from "@/lib/mockDiaryEntries";
 import {
   addSavedDiaryEntry,
   useSavedDiaryEntry,
@@ -41,6 +41,7 @@ import {
   useRemoteMemoryEntry,
   useMemoryEntries,
   isRemoteEntryId,
+  getSyncedRemoteId,
 } from "@/lib/memoryEntries";
 
 const WEEKDAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
@@ -70,7 +71,7 @@ export default function DiaryWriteForm() {
   const localExistingEntry = useSavedDiaryEntry(editId);
   // 로컬(이 탭에서 저장한 글)에 없으면 Supabase에서 읽어온 글일 수 있어
   // 그쪽도 확인합니다.
-  const { entry: remoteExistingEntry } = useRemoteMemoryEntry(
+  const { entry: remoteExistingEntry, loading: remoteEntryLoading } = useRemoteMemoryEntry(
     localExistingEntry ? null : editId
   );
   const existingEntry = localExistingEntry ?? remoteExistingEntry;
@@ -83,8 +84,20 @@ export default function DiaryWriteForm() {
   // (달력은 날짜당 글 하나만 있다고 가정하고 그리므로, 이 검사가 없으면
   // 같은 날짜에 여러 글이 저장돼 달력에 하나만 보이는 문제가 다시 생깁니다).
   const allSavedEntries = useSavedDiaryEntries();
-  const { entries: allRemoteEntries } = useMemoryEntries(allSavedEntries);
+  const { entries: allRemoteEntries, loading: allRemoteEntriesLoading } =
+    useMemoryEntries(allSavedEntries);
   const allEntries = [...allSavedEntries, ...allRemoteEntries];
+
+  // 수정 화면(editId 있음)인데 원본 글을 아직 로컬/원격 어느 쪽에서도 찾지
+  // 못한 동안(remoteEntryLoading) — 이때 entryId는 아직 새 글용 임시 uuid라
+  // 저장하면 수정이 아니라 새 글로 추가되어, 원본과 같은 날짜에 중복
+  // 저장되는 문제가 있었습니다(실제로 겪은 문제: 이미 작성된 글을 수정 버튼
+  // 으로 열어 빠르게 저장하면 같은 날짜의 글이 하나 더 생김). 전체 목록(중복
+  // 날짜 검사용)이 아직 로딩 중일 때도 같은 이유로 저장을 미룹니다.
+  const isEditEntryLoading = !!editId && !existingEntry && remoteEntryLoading;
+  // 작성 당일이 지난 글은 더 이상 고칠 수 없습니다(정책) — 저장 버튼도 함께 막습니다.
+  const isEditLocked = !!existingEntry && !isDiaryEntryEditable(existingEntry);
+  const saveDisabled = isEditEntryLoading || allRemoteEntriesLoading || isEditLocked;
 
   // "아무 것도 안 한 상태"를 판단하는 기준 스냅샷. 새 글이면 빈 값, 기존 글을
   // 수정하러 들어왔다면(editId) 그 글을 불러온 뒤 이 값도 함께 갱신됩니다.
@@ -219,6 +232,10 @@ export default function DiaryWriteForm() {
       hasAttachment,
       images,
       createdAt: createdAtRef.current,
+      // 기존 글을 불러와 고치는 세션에서 저장할 때만 "수정됨"으로 표시합니다
+      // — 새 글을 작성하는 중에 여러 번 저장해도(아직 한 번도 "완성된 글"로
+      // 취급된 적 없음) 수정한 것으로 보이지 않게 합니다.
+      updatedAt: hasLoadedEditRef.current ? new Date().toISOString() : undefined,
       // 저장 시점의 환경 설정을 함께 반영합니다(요구사항) — 제목란은
       // 폰트명/색상만, 본문란은 다섯 항목 모두.
       titleStyle: {
@@ -244,6 +261,9 @@ export default function DiaryWriteForm() {
   }
 
   async function handleSaveClick() {
+    // 버튼은 saveDisabled일 때 pointer-events-none으로 막아두지만, 방어적으로
+    // 한 번 더 확인합니다(entryId/전체 목록이 아직 준비 전이면 저장하지 않음).
+    if (saveDisabled) return;
     if (content.trim() === "") {
       setDialog({ type: "empty-content" });
       return;
@@ -270,7 +290,19 @@ export default function DiaryWriteForm() {
     if (isRemoteEntryId(entryId)) {
       void updateMemoryEntry(entryId, entry);
     } else {
-      void insertMemoryEntry(entry);
+      // 처음 Supabase에 추가하는 경우 — 추가에 성공하면 이 글의 entryId를
+      // 방금 발급된 원격 id("mem-<id>")로 갱신합니다. 이걸 안 하면 entryId가
+      // 계속 로컬 uuid로 남아있어, 같은 글쓰기 세션에서(모달을 닫지 않고)
+      // 다시 고쳐 저장할 때도 매번 updateMemoryEntry 대신 insertMemoryEntry가
+      // 또 호출되어 같은 날짜의 글이 하나 더 생기는 문제가 있었습니다
+      // (실제로 겪은 문제 — Supabase에 같은 created_at을 가진 서로 다른 두
+      // 행이 남아있는 것으로 확인함).
+      const insertedLocalId = entry.id;
+      insertMemoryEntry(entry).then((ok) => {
+        if (!ok) return;
+        const remoteId = getSyncedRemoteId(insertedLocalId);
+        if (remoteId) setEntryId(remoteId);
+      });
     }
   }
 
@@ -396,6 +428,7 @@ export default function DiaryWriteForm() {
             onOpenAttach={() => setIsAttachOpen(true)}
             saved={saved}
             hasAttachment={hasAttachment}
+            saveDisabled={saveDisabled}
           />
           <div className="flex shrink-0 flex-col divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)]">
             <DiaryDateField value={date} onChange={setDate} />
@@ -448,6 +481,14 @@ export default function DiaryWriteForm() {
           icon={warningSignIcon}
           message={`${dateLabel}에는 이미 작성된 일기가 있습니다.\n하루에 하나의 일기만 저장할 수 있습니다.`}
           onConfirm={() => setDialog({ type: "none" })}
+          wide
+        />
+      )}
+      {isEditLocked && (
+        <NoticeDialog
+          icon={warningSignIcon}
+          message={"작성 당일에만 수정할 수 있습니다.\n하루가 지난 일기는 고칠 수 없습니다."}
+          onConfirm={() => router.back()}
           wide
         />
       )}

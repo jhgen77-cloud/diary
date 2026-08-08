@@ -25,6 +25,20 @@ const DIARY_IMAGES_BUCKET = "diary-images";
 // 사본을 목록에서 제외해 이 중복을 막습니다.
 const syncedRemoteIds = new Map<string, string>();
 
+// 이번 세션에서 삭제 처리한 원격 글의 id 집합. "그날을 거닐다"/달력은 Server
+// Component가 내려준 스냅샷(entries prop)을 쓰는데, 브라우저 뒤로가기로 그
+// 화면에 돌아오면 Next.js가 방금 지우기 전의 스냅샷을 그대로 재사용해 지운
+// 글이 다시 보이는 문제가 있었습니다(실제로 겪은 문제 — 새로고침하면 정상
+// 으로 돌아옴, 즉 서버 데이터는 이미 지워졌고 화면에 남은 스냅샷만 옛것).
+// 삭제에 성공한 id를 여기 기록해두고, 어떤 경로로 그 글이 다시 내려와도
+// (스냅샷이 새것이든 옛것이든) 걸러냅니다.
+const deletedRemoteIds = new Set<string>();
+
+// "기억의 소멸"로 한 번에 전부 지운 뒤에는, 어떤 id였는지 일일이 몰라도 그
+// 시점 이후 서버가 내려주는 원격 글 스냅샷을 통째로 무시합니다 — 그 뒤에
+// 새로 쓴 글은 로컬 저장소로 즉시 반영되니 영향이 없습니다.
+let allRemoteDataCleared = false;
+
 // entry.createdAt은 new Date().toISOString()으로 만든 UTC 기준 문자열입니다.
 // 이 앱은 로컬(KST) 사용을 기준으로 하는데, Supabase 프로젝트의 세션
 // 타임존은 UTC라 이 값을 그대로 넣으면 자정 근처(0~9시 KST)에 쓴 글의
@@ -143,6 +157,9 @@ export async function insertMemoryEntry(entry: DiaryEntry): Promise<boolean> {
       image: null,
       has_attachment: hasAttachment,
       created_at: createdAt,
+      // 처음 저장하는 글이라 아직 한 번도 고친 적이 없습니다 — updated_at은
+      // updateMemoryEntry에서만 채워집니다.
+      updated_at: null,
       mood_key: moodKey,
       weather_key: weatherKey,
     })
@@ -210,6 +227,11 @@ export async function updateMemoryEntry(entryId: string, entry: DiaryEntry): Pro
       image: imageUrls,
       has_attachment: hasAttachment,
       created_at: createdAt,
+      // 이 함수가 호출됐다는 것 자체가 "고쳐서 다시 저장"이라는 뜻이라, 호출
+      // 시점을 그대로 최종 수정 시각으로 찍습니다(entry.updatedAt을 그대로
+      // 믿는 대신 여기서 직접 stamping — DB에 남는 값이 항상 실제 저장
+      // 시각과 일치하게 함).
+      updated_at: toLocalWallClockTimestamp(new Date().toISOString()),
       mood_key: moodKey,
       weather_key: weatherKey,
     })
@@ -246,6 +268,9 @@ export async function deleteMemoryEntry(entryId: string): Promise<boolean> {
   for (const [localId, remoteId] of syncedRemoteIds) {
     if (remoteId === entryId) syncedRemoteIds.delete(localId);
   }
+  // 이후 어떤 스냅샷에 이 id가 다시 섞여 들어와도 걸러내도록 기록합니다
+  // (suppressDeletedEntries 참고).
+  deletedRemoteIds.add(entryId);
   return true;
 }
 
@@ -289,6 +314,8 @@ export async function clearAllRemoteDiaryData(): Promise<boolean> {
     return false;
   }
   syncedRemoteIds.clear();
+  deletedRemoteIds.clear();
+  allRemoteDataCleared = true;
   return true;
 }
 
@@ -313,6 +340,19 @@ export async function fetchMemoryEntries(): Promise<DiaryEntry[]> {
   return (data ?? []).map(rowToEntry);
 }
 
+/** remoteEntries(Server Component 스냅샷 또는 useMemoryEntries 조회 결과)에서
+ * 이번 세션에 이미 삭제 처리한 글을 걸러냅니다. "그날을 거닐다"/달력은 Server
+ * Component가 내려준 스냅샷을 그대로 쓰는데, 브라우저 뒤로가기로 그 화면에
+ * 돌아오면 Next.js가 방금 지우기 전의(오래된) 스냅샷을 재사용해 지운 글이
+ * 다시 보이는 문제가 있었습니다(실제로 겪은 문제 — 새로고침하면 정상으로
+ * 돌아옴). 스냅샷이 새것이든 옛것이든 이 세션에서 지운 적 있는 id는 항상
+ * 걸러내 화면에 다시 나타나지 않게 합니다. */
+export function suppressDeletedEntries(remoteEntries: DiaryEntry[]): DiaryEntry[] {
+  if (allRemoteDataCleared) return [];
+  if (deletedRemoteIds.size === 0) return remoteEntries;
+  return remoteEntries.filter((entry) => !deletedRemoteIds.has(entry.id));
+}
+
 /** id 하나로 memory_entries에서 글 하나를 불러옵니다. entryId가 "mem-"로
  * 시작하지 않으면(로컬 글이면) 곧바로 null을 반환합니다. image 컬럼에는
  * Storage 공개 URL이 들어있어(예전의 base64 데이터 대신), 다른 로컬 글과
@@ -325,7 +365,7 @@ export async function fetchMemoryEntryById(entryId: string): Promise<DiaryEntry 
   const supabase = createClient();
   const { data, error } = await supabase
     .from("memory_entries")
-    .select("id, title, text, image, created_at, mood_key, weather_key")
+    .select("id, title, text, image, created_at, updated_at, mood_key, weather_key")
     .eq("id", numericId)
     .maybeSingle();
 
@@ -399,7 +439,10 @@ export function useMemoryEntries(localEntries: DiaryEntry[]): UseMemoryEntriesRe
     };
   }, []);
 
-  return { entries: suppressSyncedDuplicates(entries, localEntries), loading };
+  return {
+    entries: suppressDeletedEntries(suppressSyncedDuplicates(entries, localEntries)),
+    loading,
+  };
 }
 
 /** id가 이 앱에서 만든 로컬(uuid) id가 아니라 Supabase에서 읽어온 글의

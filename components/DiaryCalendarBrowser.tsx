@@ -6,7 +6,7 @@ import DiaryCalendarDateSearch from "@/components/DiaryCalendarDateSearch";
 import DiaryCalendar from "@/components/DiaryCalendar";
 import type { DiaryEntry } from "@/lib/mockDiaryEntries";
 import { useSavedDiaryEntries } from "@/lib/savedDiaryEntries";
-import { suppressSyncedDuplicates } from "@/lib/memoryEntries";
+import { suppressSyncedDuplicates, suppressDeletedEntries } from "@/lib/memoryEntries";
 
 interface DiaryCalendarBrowserProps {
   /** Supabase(memory_entries)에서 Server Component가 미리 가져온 글 목록
@@ -27,7 +27,12 @@ export default function DiaryCalendarBrowser({
   // 반영됐다면 "mem-<id>"로 이미 섞여 들어와 있을 수 있어, suppressSyncedDuplicates로
   // 그 원격 사본을 먼저 제외합니다(실제로 겪은 문제: 글 저장 직후 목록/달력에
   // 같은 글이 두 번 보임, memoryEntries.ts의 suppressSyncedDuplicates 참고).
-  const remoteEntries = suppressSyncedDuplicates(entries, savedEntries);
+  //
+  // entries는 브라우저 뒤로가기로 이 화면에 돌아왔을 때 Next.js가 삭제 전
+  // 스냅샷을 재사용해 지운 글이 그대로 남아있을 수도 있어(실제로 겪은 문제 —
+  // 새로고침하면 정상으로 돌아옴), suppressDeletedEntries로 이번 세션에 지운
+  // 글도 함께 걸러냅니다.
+  const remoteEntries = suppressDeletedEntries(suppressSyncedDuplicates(entries, savedEntries));
   const mergedEntries = [...remoteEntries, ...savedEntries];
 
   const today = new Date();

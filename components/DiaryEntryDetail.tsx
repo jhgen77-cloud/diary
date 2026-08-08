@@ -7,7 +7,7 @@ import Modal from "@/components/Modal";
 import NoticeDialog from "@/components/NoticeDialog";
 import DiaryEntryImages from "@/components/DiaryEntryImages";
 import { FONT_FAMILY_CSS } from "@/components/FontFamilySelect";
-import { formatDiaryDate } from "@/lib/mockDiaryEntries";
+import { formatDiaryDate, isDiaryEntryEditable } from "@/lib/mockDiaryEntries";
 import { useSavedDiaryEntry } from "@/lib/savedDiaryEntries";
 import { useRemoteMemoryEntry, deleteDiaryEntryEverywhere } from "@/lib/memoryEntries";
 import {
@@ -91,6 +91,19 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
     createdAt.getHours()
   ).padStart(2, "0")}:${String(createdAt.getMinutes()).padStart(2, "0")}에 작성된 일기입니다.`;
 
+  // 한 번이라도 고쳐 저장한 적 있으면 최종 수정 시각을 함께 보여줘 원본이
+  // 바뀌었음을 알립니다.
+  const updatedAt = entry.updatedAt ? new Date(entry.updatedAt) : null;
+  const updatedLabel = updatedAt
+    ? `${updatedAt.getFullYear()}년 ${updatedAt.getMonth() + 1}월 ${updatedAt.getDate()}일 ${String(
+        updatedAt.getHours()
+      ).padStart(2, "0")}:${String(updatedAt.getMinutes()).padStart(2, "0")}에 수정되었습니다.`
+    : null;
+
+  // 작성 당일에만 수정할 수 있습니다(정책) — 지난 글은 수정 아이콘을 눌러도
+  // 반응하지 않게 막습니다(DiaryWriteForm도 이중으로 한 번 더 막음).
+  const editable = isDiaryEntryEditable(entry);
+
   return (
     <>
       <Modal title="그날을 거닐다" size="xl" tall>
@@ -149,8 +162,11 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
                 <button
                   type="button"
                   onClick={handleEditClick}
+                  disabled={!editable}
                   aria-label="수정"
-                  className={iconButtonClass}
+                  aria-disabled={!editable}
+                  title={editable ? undefined : "작성 당일에만 수정할 수 있습니다."}
+                  className={`${iconButtonClass} ${!editable ? "pointer-events-none opacity-40" : ""}`}
                 >
                   <span className="relative h-7 w-7 sm:h-8 sm:w-8">
                     <Image
@@ -203,6 +219,11 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
             <p className="shrink-0 pt-2 text-left text-[0.7rem] text-[var(--text-sub)] sm:text-xs">
               {createdLabel}
             </p>
+            {updatedLabel && (
+              <p className="shrink-0 text-left text-[0.7rem] text-[var(--accent)] sm:text-xs">
+                {updatedLabel}
+              </p>
+            )}
           </div>
         </div>
       </Modal>
