@@ -116,6 +116,11 @@ export default function Modal({
     if (!mounted) return;
 
     function clampOffsetToViewport() {
+      // 드래그 도중에는 손대지 않습니다 — 모바일 브라우저의 주소창 접힘/펼침 등으로
+      // 드래그 중에도 resize 이벤트가 끼어들 수 있는데, 그때 이 함수가 위치를
+      // 되돌려버리면 사용자가 끌고 있는 방향과 계속 충돌해 드래그가 뻑뻑하게
+      // 느껴집니다(실제로 겪은 문제).
+      if (dragState.current) return;
       const rect = boxRef.current?.getBoundingClientRect();
       if (!rect) return;
       setOffset((prev) => {

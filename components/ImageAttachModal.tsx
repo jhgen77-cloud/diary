@@ -89,7 +89,6 @@ export default function ImageAttachModal({
       size="lg"
       onClose={onClose}
       overlay={false}
-      defaultOffset={{ x: 64, y: 48 }}
     >
       <div className="relative flex min-h-0 flex-1 flex-col gap-3">
         {warning && (
