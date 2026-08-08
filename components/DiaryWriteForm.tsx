@@ -30,11 +30,18 @@ import {
 import { formatLocalDate, type DiaryEntry } from "@/lib/mockDiaryEntries";
 import {
   addSavedDiaryEntry,
-  removeSavedDiaryEntry,
   useSavedDiaryEntry,
+  useSavedDiaryEntries,
 } from "@/lib/savedDiaryEntries";
 import { useEnvironmentSettings } from "@/lib/environmentSettings";
-import { insertMemoryEntry } from "@/lib/memoryEntries";
+import {
+  insertMemoryEntry,
+  updateMemoryEntry,
+  deleteDiaryEntryEverywhere,
+  useRemoteMemoryEntry,
+  useMemoryEntries,
+  isRemoteEntryId,
+} from "@/lib/memoryEntries";
 
 const WEEKDAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -51,6 +58,7 @@ function createDefaults() {
 type DialogState =
   | { type: "none" }
   | { type: "empty-content" }
+  | { type: "duplicate-date" }
   | { type: "delete-confirm" }
   | { type: "delete-done" }
   | { type: "close-confirm" };
@@ -59,10 +67,24 @@ export default function DiaryWriteForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
-  const existingEntry = useSavedDiaryEntry(editId);
+  const localExistingEntry = useSavedDiaryEntry(editId);
+  // 로컬(이 탭에서 저장한 글)에 없으면 Supabase에서 읽어온 글일 수 있어
+  // 그쪽도 확인합니다.
+  const { entry: remoteExistingEntry } = useRemoteMemoryEntry(
+    localExistingEntry ? null : editId
+  );
+  const existingEntry = localExistingEntry ?? remoteExistingEntry;
   // 환경 설정(SettingsManager)에서 고른 값 — "시간을 붙잡다"에서만 실제로
   // 적용됩니다(요구사항). 제목란은 폰트명/폰트 색상만, 본문란은 다섯 항목 모두.
   const envSettings = useEnvironmentSettings();
+
+  // 하루에 일기는 하나만 쓸 수 있습니다 — 저장 시 이 목록(로컬 저장 글 +
+  // Supabase에 이미 있는 글)에서 같은 날짜를 가진 다른 글이 있는지 확인합니다
+  // (달력은 날짜당 글 하나만 있다고 가정하고 그리므로, 이 검사가 없으면
+  // 같은 날짜에 여러 글이 저장돼 달력에 하나만 보이는 문제가 다시 생깁니다).
+  const allSavedEntries = useSavedDiaryEntries();
+  const { entries: allRemoteEntries } = useMemoryEntries(allSavedEntries);
+  const allEntries = [...allSavedEntries, ...allRemoteEntries];
 
   // "아무 것도 안 한 상태"를 판단하는 기준 스냅샷. 새 글이면 빈 값, 기존 글을
   // 수정하러 들어왔다면(editId) 그 글을 불러온 뒤 이 값도 함께 갱신됩니다.
@@ -110,6 +132,8 @@ export default function DiaryWriteForm() {
     const loadedDate = new Date(entryYear, entryMonth - 1, entryDay);
 
     setDate(loadedDate);
+    // Supabase에서 불러온 글(existingEntry.source === "remote")도
+    // mood_key/weather_key 컬럼 덕분에 원래 기분/날씨가 그대로 복원됩니다.
     setMood(existingEntry.mood);
     setWeather(existingEntry.weather);
     setTitle(existingEntry.title);
@@ -224,14 +248,30 @@ export default function DiaryWriteForm() {
       setDialog({ type: "empty-content" });
       return;
     }
+    // 하루에 하나의 일기만 허용합니다 — 이 글(entryId) 자신은 제외하고, 선택한
+    // 날짜에 다른 글이 이미 있으면 저장을 막고 경고창을 띄웁니다.
+    const targetDate = formatLocalDate(date);
+    const hasDuplicateDate = allEntries.some(
+      (other) => other.id !== entryId && other.date === targetDate
+    );
+    if (hasDuplicateDate) {
+      setDialog({ type: "duplicate-date" });
+      return;
+    }
     // 본문(글 내용)이 저장의 필수 조건이며, 날짜/기분/날씨/제목/첨부 이미지는
     // 함께 부가적으로 저장됩니다. "그날을 거닐다" 목록에 즉시 반영됩니다.
     const entry = await buildEntryFromState();
     addSavedDiaryEntry(entry);
     setSaved(true);
-    // Supabase의 "글 읽기 리스트"(memory_entries) 테이블에도 함께 추가합니다.
-    // 실패해도(네트워크 오류 등) 이미 반영된 로컬 저장은 그대로 둡니다.
-    void insertMemoryEntry(entry);
+    // Supabase에도 반영합니다 — entryId가 Supabase에서 불러온 글("mem-<id>")을
+    // 고치는 중이면 그 행을 갱신하고, 그 외엔(새 글이거나 로컬 글 수정) 새
+    // 행으로 추가합니다. 실패해도(네트워크 오류 등) 이미 반영된 로컬 저장은
+    // 그대로 둡니다.
+    if (isRemoteEntryId(entryId)) {
+      void updateMemoryEntry(entryId, entry);
+    } else {
+      void insertMemoryEntry(entry);
+    }
   }
 
   function handleDeleteClick() {
@@ -239,7 +279,9 @@ export default function DiaryWriteForm() {
   }
 
   function handleConfirmDelete() {
-    removeSavedDiaryEntry(entryId); // 목록에 저장돼 있었다면 함께 제거
+    // 로컬 사본과, (원격 글이거나 이번 세션에 Supabase로도 동기화된 로컬
+    // 글이면) Supabase 쪽까지 함께 지웁니다.
+    void deleteDiaryEntryEverywhere(entryId);
     setSaved(false); // 저장돼 있던 글을 삭제했으니 저장 아이콘도 원복
     setDialog({ type: "delete-done" });
   }
@@ -399,6 +441,14 @@ export default function DiaryWriteForm() {
           icon={warningSignIcon}
           message={"[일기내용]을 입력하세요"}
           onConfirm={() => setDialog({ type: "none" })}
+        />
+      )}
+      {dialog.type === "duplicate-date" && (
+        <NoticeDialog
+          icon={warningSignIcon}
+          message={`${dateLabel}에는 이미 작성된 일기가 있습니다.\n하루에 하나의 일기만 저장할 수 있습니다.`}
+          onConfirm={() => setDialog({ type: "none" })}
+          wide
         />
       )}
       {dialog.type === "delete-confirm" && (

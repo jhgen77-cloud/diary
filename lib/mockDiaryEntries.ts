@@ -18,6 +18,16 @@ export interface DiaryEntry {
    * 일기는 기본 스타일로 표시됩니다. */
   titleStyle?: DiaryTitleStyle;
   contentStyle?: DiaryContentStyle;
+  /** Supabase(memory_entries)에서 읽어온 글은 mood/weather 컬럼에 아이콘 키가
+   * 아니라 실제 이미지 데이터(data URL)가 들어있어, MOOD_ICONS/WEATHER_ICONS
+   * 조회 대신 이 값을 직접 그립니다(lib/memoryEntries.ts 참고). 로컬에서 만든
+   * 글에는 없습니다. */
+  moodImageSrc?: string;
+  weatherImageSrc?: string;
+  /** Supabase에서 곧바로 읽어온 글이면 "remote" — 아직 수정/삭제를 Supabase에
+   * 반영하는 기능은 없어(저장 시 추가만 구현), 상세 화면에서 해당 버튼을
+   * 숨기는 데 씁니다. */
+  source?: "remote";
 }
 
 const WEEKDAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];

@@ -9,7 +9,8 @@ import DataExportSplitOptions, {
 } from "@/components/DataExportSplitOptions";
 import DataExportDateRangeSection from "@/components/DataExportDateRangeSection";
 import { letterIIcon, warningSignIcon } from "@/lib/diaryIcons";
-import { removeSavedDiaryEntry, useSavedDiaryEntries } from "@/lib/savedDiaryEntries";
+import { useSavedDiaryEntries } from "@/lib/savedDiaryEntries";
+import { useMemoryEntries, deleteDiaryEntryEverywhere } from "@/lib/memoryEntries";
 import {
   type DateValue,
   type ExportFormat,
@@ -27,7 +28,12 @@ interface NoticeState {
 
 /** 기억의 날개 — 저장된 일기를 ZIP/TXT 파일로 로컬 폴더에 내보내 백업. */
 export default function DataExportPanel() {
-  const entries = useSavedDiaryEntries();
+  const savedEntries = useSavedDiaryEntries();
+  // "그날을 거닐다"와 동일하게, Supabase에 저장된 글도 함께 내보내기 대상에
+  // 포함합니다 — 로컬 글만 대상으로 하면 새로고침 이후엔 내보낼 게 없는
+  // 것처럼 보였습니다.
+  const { entries: remoteEntries } = useMemoryEntries(savedEntries);
+  const entries = [...savedEntries, ...remoteEntries];
 
   const [format, setFormat] = useState<ExportFormat>("zip");
   // ZIP/TXT 각자 '파일 생성 옵션'을 따로 기억합니다 — 형식을 바꿔도 이전에 고른
@@ -84,7 +90,10 @@ export default function DataExportPanel() {
         await exportEntriesAsTxt(dirHandle, targets, txtSplitOption);
       }
       if (deleteAfterExport) {
-        targets.forEach((entry) => removeSavedDiaryEntry(entry.id));
+        // 로컬 사본뿐 아니라 Supabase 쪽도 함께 지웁니다 — 로컬만 지우면
+        // "그날을 거닐다"에 Supabase 사본이 그대로 남아 보이는 문제가
+        // 있었습니다(실제로 겪은 문제).
+        await Promise.all(targets.map((entry) => deleteDiaryEntryEverywhere(entry.id)));
       }
       setNotice({ icon: letterIIcon, message: `일기 ${targets.length}개를 내보냈습니다.` });
     } catch (error) {

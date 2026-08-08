@@ -10,6 +10,14 @@ import {
   readImportFiles,
   type ImportOption,
 } from "@/lib/importDiaryEntries";
+import {
+  useMemoryEntries,
+  insertMemoryEntry,
+  updateMemoryEntry,
+  isRemoteEntryId,
+  getSyncedRemoteId,
+} from "@/lib/memoryEntries";
+import type { DiaryEntry } from "@/lib/mockDiaryEntries";
 
 interface ImportOptionItem {
   key: ImportOption;
@@ -34,7 +42,12 @@ type DialogState =
  * 덮어씁니다(overwrite-source — 파일이 나중에 다시 바뀌어도 다시 가져오면 그때마다
  * 최신 내용으로 덮어써집니다). */
 export default function DataRestorePanel() {
-  const entries = useSavedDiaryEntries();
+  const savedEntries = useSavedDiaryEntries();
+  // "그날을 거닐다"와 동일하게 Supabase에 저장된 글도 함께 병합 대상에
+  // 넣습니다 — 아니면 이미 Supabase에만 있는 글과 같은 날짜를 가져와도
+  // 충돌로 인식되지 않아 중복으로 쌓일 수 있었습니다.
+  const { entries: remoteEntries } = useMemoryEntries(savedEntries);
+  const entries = [...savedEntries, ...remoteEntries];
   const [option, setOption] = useState<ImportOption>("skip");
   const [dialog, setDialog] = useState<DialogState>({ type: "none" });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -56,7 +69,7 @@ export default function DataRestorePanel() {
         return;
       }
 
-      const { next, hasConflict } = mergeImportedEntries(entries, imported, option);
+      const { next, hasConflict, touched } = mergeImportedEntries(entries, imported, option);
       const saved = setSavedDiaryEntries(next);
       if (!saved) {
         // 저장 공간이 부족해 반영하지 못했습니다 — 기존 데이터는 그대로 유지되며,
@@ -64,6 +77,15 @@ export default function DataRestorePanel() {
         setDialog({ type: "storageFull" });
         return;
       }
+      // 실제로 새로 추가되거나 덮어써진 글만 Supabase에도 반영합니다 — 이미
+      // 원격/동기화된 글(같은 글을 다시 가져와 덮어쓴 경우)이면 그 행을
+      // 갱신하고, 그 외엔 새 행으로 추가합니다.
+      await Promise.all(
+        touched.map((entry: DiaryEntry) => {
+          const remoteId = isRemoteEntryId(entry.id) ? entry.id : getSyncedRemoteId(entry.id);
+          return remoteId ? updateMemoryEntry(remoteId, entry) : insertMemoryEntry(entry);
+        })
+      );
       setDialog({ type: option === "skip" && hasConflict ? "conflictToast" : "done" });
     } catch (error) {
       // 실패 원인을 화면에도 그대로 보여줘, "왜" 실패했는지 바로 확인할 수 있게 합니다.

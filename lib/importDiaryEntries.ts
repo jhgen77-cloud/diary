@@ -201,22 +201,24 @@ export async function readImportFiles(files: File[]): Promise<DiaryEntry[]> {
 export interface MergeResult {
   /** 병합 결과 저장할 전체 목록. */
   next: DiaryEntry[];
-  /** 가져온 일기 중 하나라도 기존 저장된 일기와 같은 날짜였는지. */
+  /** 가져온 일기 중 하나라도 기존(또는 이번 가져오기에서 먼저 반영된) 일기와
+   * 같은 날짜였는지. */
   hasConflict: boolean;
+  /** 이번 병합으로 새로 추가되거나 내용이 덮어써진 글들(건너뛴 건 제외) —
+   * Supabase 동기화처럼 "실제로 바뀐 항목만" 다시 반영해야 하는 후속 작업에
+   * 씁니다(DataRestorePanel 참고). */
+  touched: DiaryEntry[];
 }
 
-/** 가져온 일기를 기존 저장 목록과 병합합니다. 같은 날짜의 일기가 이미 있으면
- * option에 따라 처리하고, 날짜가 겹치지 않는 일기는 항상 그대로 추가합니다.
+/** 가져온 일기를 기존 저장 목록과 병합합니다. 하루에 일기는 하나만 저장할 수
+ * 있다는 규칙(DiaryWriteForm에서 저장 시 강제)을 가져오기에도 그대로 적용해,
+ * 같은 날짜의 일기가 이미 있으면(기존 목록에 있든, 이번에 가져오는 여러 파일
+ * 안에서 먼저 반영됐든) option에 따라 처리하고, 날짜가 겹치지 않는 일기는
+ * 그대로 추가합니다.
  *
- * 이 앱은 "글쓰기"에서 매번 새 id를 발급하기 때문에, 같은 날짜에 일기를 여러 개
- * 써 두는 것이 실제로 가능합니다(id로만 구분/저장되고, 날짜로 유일성을 강제하지
- * 않음). 그래서 "같은 날짜 = 하나의 항목"이라고 가정하고 날짜만으로 병합하면,
- * 같은 날짜의 일기가 두 개 이상 있을 때 하나가 통째로 사라지거나 서로 다른
- * 두 항목의 내용이 뒤섞이는 문제가 있었습니다.
- *
- * 그래서 먼저 id가 정확히 같은 항목(=정확히 같은 글을 다시 가져오는 경우)을
- * 최우선으로 매칭하고, id가 일치하는 게 없을 때만(예: 다른 기기의 백업처럼 id는
- * 다르지만 달력상 같은 날짜인 경우) 날짜로 대체 판단합니다. */
+ * id가 정확히 같은 항목(=정확히 같은 글을 다시 가져오는 경우)을 최우선으로
+ * 매칭하고, id가 일치하는 게 없을 때만(예: 다른 기기의 백업처럼 id는 다르지만
+ * 날짜가 같은 경우) 날짜로 대체 판단합니다. */
 export function mergeImportedEntries(
   existing: DiaryEntry[],
   imported: DiaryEntry[],
@@ -224,35 +226,33 @@ export function mergeImportedEntries(
 ): MergeResult {
   const next = [...existing];
   const indexById = new Map(existing.map((entry, index) => [entry.id, index]));
-  // 같은 날짜의 기존 항목이 여러 개여도, 날짜 대체 판단에는 그중 첫 번째 것만
-  // 씁니다(정확한 대상은 id 매칭으로 이미 걸러진 뒤이므로, 여기까지 오는 경우는
-  // 서로 다른 기기/백업에서 온 것으로 간주).
-  const indexByDate = new Map<string, number>();
-  existing.forEach((entry, index) => {
-    if (!indexByDate.has(entry.date)) indexByDate.set(entry.date, index);
-  });
+  const indexByDate = new Map(existing.map((entry, index) => [entry.date, index]));
   let hasConflict = false;
+  const touched: DiaryEntry[] = [];
 
   for (const incoming of imported) {
     const sameIdIndex = indexById.get(incoming.id);
     if (sameIdIndex !== undefined) {
-      // 정확히 같은 글을 다시 가져온 경우 — 그 글 하나만 갱신합니다(다른 항목이
-      // 같은 날짜를 쓰고 있어도 건드리지 않습니다).
+      // 정확히 같은 글을 다시 가져온 경우 — 그 글 하나만 갱신합니다.
       hasConflict = true;
       if (option === "skip") continue;
       const target = next[sameIdIndex];
-      next[sameIdIndex] = { ...incoming, id: target.id, createdAt: target.createdAt };
+      const merged = { ...incoming, id: target.id, createdAt: target.createdAt };
+      next[sameIdIndex] = merged;
+      touched.push(merged);
       continue;
     }
 
     const sameDateIndex = indexByDate.get(incoming.date);
     if (sameDateIndex === undefined) {
-      // 겹치는 날짜가 없으면 항상 그대로 새로 추가합니다. indexById/indexByDate는
-      // 건드리지 않고 원래 저장돼 있던 목록(existing) 스냅샷 그대로 둡니다 — 여기서
-      // 갱신하면, 이번에 가져오는 파일 안에서 서로 다른 id인데 날짜만 같은 항목들이
-      // (예: 같은 날 쓴 일기 두 편) 서로를 '충돌'로 잘못 인식해 하나가 사라지는
-      // 문제가 있었습니다.
-      next.push(incoming);
+      // 겹치는 날짜가 없으면 새로 추가합니다. 방금 추가한 항목도 이후 항목과
+      // 같은 규칙으로 비교할 수 있도록 인덱스를 등록해 둡니다 — 이번에 가져오는
+      // 여러 파일 안에 같은 날짜(또는 같은 id)의 글이 섞여 있어도 하루에 하나만
+      // 남도록 순서대로(뒤에 온 파일이 우선) 정리됩니다.
+      const newIndex = next.push(incoming) - 1;
+      indexByDate.set(incoming.date, newIndex);
+      indexById.set(incoming.id, newIndex);
+      touched.push(incoming);
       continue;
     }
 
@@ -264,8 +264,10 @@ export function mergeImportedEntries(
     // 일기를 새 내용으로 갱신"한 것이 되게 합니다. 파일이 나중에 다시 수정돼
     // 다시 가져와도, 그때마다 그 시점의 파일 내용으로 갱신됩니다.
     const target = next[sameDateIndex];
-    next[sameDateIndex] = { ...incoming, id: target.id, createdAt: target.createdAt };
+    const merged = { ...incoming, id: target.id, createdAt: target.createdAt };
+    next[sameDateIndex] = merged;
+    touched.push(merged);
   }
 
-  return { next, hasConflict };
+  return { next, hasConflict, touched };
 }

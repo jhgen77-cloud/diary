@@ -66,22 +66,9 @@ function formatEntryText(entry: DiaryEntry) {
 
 interface ExportGroup {
   /** "single"일 때는 빈 문자열. 그 외에는 연도("2026") / 연,월("2026-08") /
-   * 날짜,시간("2026-08-07_14-30-05") 문자열 — 파일명을 짓는 쪽에서 형식에
-   * 맞게 사용합니다. */
+   * 날짜("2026-08-07") 문자열 — 파일명을 짓는 쪽에서 형식에 맞게 사용합니다. */
   key: string;
   entries: DiaryEntry[];
-}
-
-// 같은 날짜에 일기가 여러 개 저장돼 있을 수 있어(글쓰기에서 매번 새 id를 받으므로
-// 날짜가 유일하지 않음), "날짜별로 파일 생성"에서 날짜만으로 파일명을 지으면 같은
-// 날짜의 두 번째 이후 일기가 첫 번째 일기의 파일을 덮어써 사라지는 문제가 있었습니다
-// (실제로 재현해 확인함). createdAt(작성 시각)의 시:분:초까지 파일명에 포함해,
-// 같은 날짜라도 시간이 다르면 서로 다른 파일로 분리합니다.
-function formatDateTimeKey(entry: DiaryEntry): string {
-  const created = new Date(entry.createdAt);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const time = `${pad(created.getHours())}-${pad(created.getMinutes())}-${pad(created.getSeconds())}`;
-  return `${entry.date}_${time}`;
 }
 
 /** splitOption에 따라 entries를 파일 단위 그룹으로 묶습니다. ZIP/TXT 내보내기가
@@ -97,7 +84,9 @@ function groupEntriesForExport(
     return [{ key: "", entries: sorted }];
   }
   if (splitOption === "date") {
-    return sorted.map((entry) => ({ key: formatDateTimeKey(entry), entries: [entry] }));
+    // 하루에 일기는 하나만 저장할 수 있어(DiaryWriteForm에서 저장 시 강제)
+    // entry.date만으로도 파일명이 겹치지 않습니다.
+    return sorted.map((entry) => ({ key: entry.date, entries: [entry] }));
   }
 
   // "year" | "year-month" — 연도(또는 연,월) 단위로 묶습니다.

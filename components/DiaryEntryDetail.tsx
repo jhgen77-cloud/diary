@@ -8,7 +8,8 @@ import NoticeDialog from "@/components/NoticeDialog";
 import DiaryEntryImages from "@/components/DiaryEntryImages";
 import { FONT_FAMILY_CSS } from "@/components/FontFamilySelect";
 import { formatDiaryDate } from "@/lib/mockDiaryEntries";
-import { useSavedDiaryEntry, removeSavedDiaryEntry } from "@/lib/savedDiaryEntries";
+import { useSavedDiaryEntry } from "@/lib/savedDiaryEntries";
+import { useRemoteMemoryEntry, deleteDiaryEntryEverywhere } from "@/lib/memoryEntries";
 import {
   MOOD_ICONS,
   WEATHER_ICONS,
@@ -31,15 +32,24 @@ type DialogState = { type: "none" } | { type: "delete-confirm" } | { type: "dele
 
 export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
   const router = useRouter();
-  const entry = useSavedDiaryEntry(id);
+  const localEntry = useSavedDiaryEntry(id);
+  // 로컬(이 탭에서 저장한 글)에 없으면 Supabase에서 읽어온 글일 수 있어
+  // 그쪽도 확인합니다 — 로컬에 있으면 굳이 원격 조회를 하지 않도록 id 대신
+  // null을 넘겨 훅을 쉬게 둡니다.
+  const { entry: remoteEntry, loading: remoteLoading } = useRemoteMemoryEntry(
+    localEntry ? null : id
+  );
+  const entry = localEntry ?? remoteEntry;
   const [dialog, setDialog] = useState<DialogState>({ type: "none" });
 
   function handleDeleteClick() {
     setDialog({ type: "delete-confirm" });
   }
 
-  function handleConfirmDelete() {
-    removeSavedDiaryEntry(id);
+  async function handleConfirmDelete() {
+    // 로컬 사본과, (원격 글이거나 이번 세션에 Supabase로도 동기화된 로컬
+    // 글이면) Supabase 쪽까지 함께 지웁니다.
+    await deleteDiaryEntryEverywhere(id);
     setDialog({ type: "delete-done" });
   }
 
@@ -57,6 +67,11 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
   }
 
   if (!entry) {
+    // Supabase 원격 글은 조회가 끝나기 전까지 잠깐 못 찾은 것처럼 보일 수
+    // 있어, 그 동안은 "삭제되었습니다" 대신 빈 모달만 보여주고 기다립니다.
+    if (remoteLoading) {
+      return <Modal title="그날을 거닐다" size="xl" tall>{null}</Modal>;
+    }
     // 찾을 수 없는 글(이미 삭제됐거나 잘못된 링크)도 실제 삭제 흐름과 같은
     // "삭제되었습니다." 알림창으로 안내합니다.
     return (
@@ -86,21 +101,35 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               <div className="flex items-center gap-1.5">
                 <span className="relative h-7 w-7 shrink-0 sm:h-8 sm:w-8">
-                  <Image
-                    src={MOOD_ICONS[entry.mood]}
-                    alt={entry.mood}
-                    fill
-                    className="object-contain"
-                  />
-                </span>
-                {entry.weather && (
-                  <span className="relative h-7 w-7 shrink-0 sm:h-8 sm:w-8">
-                    <Image
-                      src={WEATHER_ICONS[entry.weather]}
-                      alt={entry.weather}
-                      fill
-                      className="object-contain"
+                  {entry.moodImageSrc ? (
+                    // Supabase에서 읽어온 글은 mood 컬럼 자체가 이미지 데이터라 그대로 그립니다.
+                    // eslint-disable-next-line @next/next/no-img-element -- data URL이라 next/image 최적화 대상이 아님
+                    <img
+                      src={entry.moodImageSrc}
+                      alt={entry.mood}
+                      className="h-full w-full object-contain"
                     />
+                  ) : (
+                    <Image src={MOOD_ICONS[entry.mood]} alt={entry.mood} fill className="object-contain" />
+                  )}
+                </span>
+                {(entry.weather || entry.weatherImageSrc) && (
+                  <span className="relative h-7 w-7 shrink-0 sm:h-8 sm:w-8">
+                    {entry.weatherImageSrc ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- data URL이라 next/image 최적화 대상이 아님
+                      <img
+                        src={entry.weatherImageSrc}
+                        alt={entry.weather ?? "날씨"}
+                        className="h-full w-full object-contain"
+                      />
+                    ) : (
+                      <Image
+                        src={WEATHER_ICONS[entry.weather!]}
+                        alt={entry.weather!}
+                        fill
+                        className="object-contain"
+                      />
+                    )}
                   </span>
                 )}
               </div>

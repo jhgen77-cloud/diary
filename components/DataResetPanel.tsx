@@ -4,23 +4,30 @@ import { useState } from "react";
 import DataCheckboxOption from "@/components/DataCheckboxOption";
 import NoticeDialog from "@/components/NoticeDialog";
 import Tooltip from "@/components/Tooltip";
-import { letterIIcon, questionMarkIcon } from "@/lib/diaryIcons";
+import { letterIIcon, questionMarkIcon, warningSignIcon } from "@/lib/diaryIcons";
 import { clearSavedDiaryEntries, useSavedDiaryEntries } from "@/lib/savedDiaryEntries";
+import { useMemoryEntries, clearAllRemoteDiaryData } from "@/lib/memoryEntries";
 
-type DialogState = "none" | "confirm" | "done" | "empty";
+type DialogState = "none" | "confirm" | "done" | "empty" | "error";
 
 /** 기억의 소멸 — 데이터가 저장되는 곳('기억의 은하')을 보여주고, 그 데이터를 모두
  * 초기화(소멸)합니다. '모든 데이터를 삭제합니다.' 체크박스에 동의해야만 [소멸]
  * 버튼이 활성화됩니다. */
 export default function DataResetPanel() {
-  const entries = useSavedDiaryEntries();
+  const savedEntries = useSavedDiaryEntries();
+  // "그날을 거닐다"와 동일하게 Supabase에 저장된 글도 함께 집계합니다 — 아니면
+  // 새로고침 후엔 지울 게 없다고 나오는데 실제론 Supabase에 데이터가 남아있는
+  // 것처럼 보일 수 있었습니다.
+  const { entries: remoteEntries } = useMemoryEntries(savedEntries);
+  const entries = [...savedEntries, ...remoteEntries];
   const [agreed, setAgreed] = useState(false);
   const [dialog, setDialog] = useState<DialogState>("none");
 
-  function handleConfirmReset() {
+  async function handleConfirmReset() {
     clearSavedDiaryEntries();
+    const ok = await clearAllRemoteDiaryData();
     setAgreed(false);
-    setDialog("done");
+    setDialog(ok ? "done" : "error");
   }
 
   // 삭제할 데이터가 없으면 확인 절차 없이 바로 '데이터 없음' 알림만 띄웁니다.
@@ -52,7 +59,7 @@ export default function DataResetPanel() {
           </span>
         </Tooltip>
         <span className="truncate text-xs text-[var(--text-sub)] sm:text-sm">
-          (데이터베이스 미구현) 브라우저 메모리 · 새로고침 시 소실됨
+          Supabase(memory_entries 등) + 브라우저 메모리(세션 동안만)
         </span>
       </div>
 
@@ -110,6 +117,14 @@ export default function DataResetPanel() {
         <NoticeDialog
           icon={letterIIcon}
           message="초기화 할 데이터가 없습니다."
+          onConfirm={() => setDialog("none")}
+          wide
+        />
+      )}
+      {dialog === "error" && (
+        <NoticeDialog
+          icon={warningSignIcon}
+          message={"Supabase 초기화 중 오류가 발생했습니다.\n네트워크 상태를 확인한 뒤 다시 시도해 주세요."}
           onConfirm={() => setDialog("none")}
           wide
         />

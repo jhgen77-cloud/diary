@@ -26,6 +26,9 @@ const WEEKDAY_HEADERS = ["일", "월", "화", "수", "목", "금", "토"];
 const navButtonClass =
   "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[var(--text-sub)] transition-transform hover:bg-[var(--hover)] active:scale-90 active:bg-[var(--active)]";
 
+// 하루에 글은 하나만 쓸 수 있습니다(DiaryWriteForm에서 저장 시 같은 날짜 글이
+// 있으면 경고창을 띄우고 막습니다) — 그래서 날짜당 글 하나만 담는 Map으로
+// 충분합니다.
 function buildCalendarCells(entries: DiaryEntry[], year: number, month: number) {
   const firstWeekday = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -133,21 +136,35 @@ export default function DiaryCalendar({
                 <>
                   <div className="flex items-center gap-0.5">
                     <span className="relative h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5">
-                      <Image
-                        src={MOOD_ICONS[entry.mood]}
-                        alt={entry.mood}
-                        fill
-                        className="object-contain"
-                      />
-                    </span>
-                    {entry.weather && (
-                      <span className="relative h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5">
-                        <Image
-                          src={WEATHER_ICONS[entry.weather]}
-                          alt={entry.weather}
-                          fill
-                          className="object-contain"
+                      {entry.moodImageSrc ? (
+                        // Supabase에서 읽어온 글은 mood 컬럼 자체가 이미지 데이터라 그대로 그립니다.
+                        // eslint-disable-next-line @next/next/no-img-element -- data URL이라 next/image 최적화 대상이 아님
+                        <img
+                          src={entry.moodImageSrc}
+                          alt={entry.mood}
+                          className="h-full w-full object-contain"
                         />
+                      ) : (
+                        <Image src={MOOD_ICONS[entry.mood]} alt={entry.mood} fill className="object-contain" />
+                      )}
+                    </span>
+                    {(entry.weather || entry.weatherImageSrc) && (
+                      <span className="relative h-3 w-3 shrink-0 sm:h-3.5 sm:w-3.5">
+                        {entry.weatherImageSrc ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- data URL이라 next/image 최적화 대상이 아님
+                          <img
+                            src={entry.weatherImageSrc}
+                            alt={entry.weather ?? "날씨"}
+                            className="h-full w-full object-contain"
+                          />
+                        ) : (
+                          <Image
+                            src={WEATHER_ICONS[entry.weather!]}
+                            alt={entry.weather!}
+                            fill
+                            className="object-contain"
+                          />
+                        )}
                       </span>
                     )}
                     {entry.hasAttachment && (
