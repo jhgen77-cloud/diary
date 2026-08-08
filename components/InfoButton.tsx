@@ -11,7 +11,7 @@ export default function InfoButton() {
       <Link
         href="/info"
         aria-label="정보"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-opacity hover:opacity-70 sm:h-10 sm:w-10"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-opacity hover:opacity-70 sm:h-10 sm:w-10"
       >
         <Image src={infoIcon} alt="정보" className="h-full w-full object-contain" />
       </Link>

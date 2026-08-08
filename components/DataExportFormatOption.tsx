@@ -44,7 +44,7 @@ export default function DataExportFormatOption({
           <span className="text-xs font-medium text-[var(--text)] sm:text-sm">
             {label}
           </span>
-          <span className="text-[0.7rem] whitespace-nowrap text-[var(--text-sub)] sm:text-xs">
+          <span className="text-[0.7rem] text-[var(--text-sub)] sm:text-xs">
             {description}
           </span>
         </span>

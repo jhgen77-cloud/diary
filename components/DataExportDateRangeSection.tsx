@@ -36,7 +36,7 @@ export default function DataExportDateRangeSection({
         일기 날짜 선택
       </p>
 
-      <div className="flex flex-nowrap items-center gap-6">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-6">
         <DataExportDateField
           label="시작 일자"
           value={startDate}

@@ -18,7 +18,7 @@ export default function DataManager() {
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex min-h-0 flex-1 gap-3 sm:gap-4">
         <DataSidebar />
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
           <DataTabNav active={tab} onChange={setTab} />
           <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto">
             {/* 탭을 옮겨도 각 패널의 상태(선택된 파일 형식, 파일 생성 옵션 등)가

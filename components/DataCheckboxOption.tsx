@@ -42,7 +42,7 @@ export default function DataCheckboxOption({
           </svg>
         )}
       </span>
-      <span className="text-xs whitespace-nowrap text-[var(--text-sub)] sm:text-sm">
+      <span className="text-xs text-[var(--text-sub)] sm:text-sm">
         {label}
       </span>
     </button>
