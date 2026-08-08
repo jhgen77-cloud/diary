@@ -4,7 +4,10 @@
    버튼/카드/입력 필드 등 컴포넌트 클래스에서는 아래 변수를 Tailwind arbitrary
    value로만 참조합니다: bg-[var(--accent)], text-[var(--text-sub)] 형태.
    text-sub는 가이드 원안(#9B9A97, 배경 대비 약 2.8:1)이 3:1 최소 명암비를
-   충족하지 못해 #787774로 조정했습니다(대비 약 4.5:1). */
+   충족하지 못해 #787774로 조정했습니다(대비 약 4.5:1).
+   accent는 가이드 원안의 파란색(#2eaadc) 대신, 선택/클릭 상태를 더 차분하게
+   보여주기 위해 파스텔톤의 짙은 웜그레이로 바꿨습니다(텍스트 색 #37352f와
+   같은 웜그레이 계열이라 전체 톤이 통일됩니다) — 흰 텍스트 대비 약 4.6:1. */
 :root {
   --background: #f7f7f5;
   --card: #ffffff;
@@ -12,8 +15,8 @@
   --text-sub: #787774;
   --placeholder: #c4c4c0;
   --border: #e3e3e0;
-  --accent: #2eaadc;
-  --accent-hover: #2898c4;
+  --accent: #7a756f;
+  --accent-hover: #635e59;
   --hover: #f1f1ef;
   --active: #e9e9e6;
   --error: #eb5757;

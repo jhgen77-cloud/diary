@@ -72,8 +72,17 @@ export default function LoginPage() {
             onChange={setPassword}
             required
           />
+          {/* 회원가입 페이지는 인풋(라벨+필드)이 3개, 로그인은 2개(+버튼 2개)라
+              내용물 높이가 자연히 달라 박스 세로 크기가 서로 달랐습니다 — 인풋
+              한 칸(라벨줄 높이)만큼 빈 공간을 더해 박스 크기를 맞춥니다. */}
+          <div className="h-[36px]" aria-hidden />
           <AuthSubmitButton type="submit" disabled={!canSubmit || submitting}>
             로그인
+          </AuthSubmitButton>
+          {/* 카카오 OAuth는 Supabase 프로젝트에 직접 설정할 예정이라, 지금은
+              기능 연결 없이 버튼만 둡니다(눌러도 아무 동작 안 함). */}
+          <AuthSubmitButton type="button" variant="kakao">
+            카카오 로그인
           </AuthSubmitButton>
         </form>
       </AuthCard>
