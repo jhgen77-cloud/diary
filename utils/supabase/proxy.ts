@@ -4,15 +4,18 @@ import { type NextRequest, NextResponse } from "next/server";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-// 로그인한 사용자만 들어갈 수 있는 경로 — 메인 인덱스 페이지("그날을 거닐다"/
-// "시간을 붙잡다"/"기억의 유실을 회복하다"로 가는 진입점)는 그대로 누구나 볼 수
-// 있고, 실제 그 세 기능의 경로(및 하위 경로 — 글 상세, 달력, 글쓰기 등)와
-// /settings, /info만 막습니다. 모달로 열릴 때도 URL 경로 자체는 동일해서
-// (@modal의 (.)diary 등은 렌더링 트리만 다를 뿐 pathname은 같음) 이 검사
-// 하나로 모달 진입도 함께 막힙니다.
+// 로그인한 사용자만 들어갈 수 있는 경로. 메인 인덱스 페이지("/")도 이제
+// 포함됩니다 — 로그인/회원가입/비밀번호 관련 페이지와 개인정보 처리방침,
+// OAuth 콜백만 예외로 둡니다(그렇지 않으면 로그인 페이지 자체가 막혀 무한
+// 리다이렉트에 빠집니다). 모달로 열릴 때도 URL 경로 자체는 동일해서(@modal의
+// (.)diary 등은 렌더링 트리만 다를 뿐 pathname은 같음) 이 검사 하나로 모달
+// 진입도 함께 막힙니다.
 const PROTECTED_PREFIXES = ["/diary", "/data", "/settings", "/info"];
-
+// 위 배열 방식(prefix + "/")으로는 루트 "/"를 넣을 수 없습니다 — 모든 경로가
+// "/"로 시작해서 로그인 페이지까지 막아버립니다. 정확히 "/"인 경우만 별도로
+// 확인합니다.
 function isProtectedPath(pathname: string): boolean {
+  if (pathname === "/") return true;
   return PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
