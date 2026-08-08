@@ -160,6 +160,13 @@ export async function insertMemoryEntry(entry: DiaryEntry): Promise<boolean> {
     weather_key: weatherKey,
   } = encodeEntryFields(entry);
 
+  // "본인 글만 접근 가능" RLS 정책을 곧 도입할 예정이라, 작성 시점에 로그인한
+  // 사용자의 id를 함께 저장해둡니다(로그인 안 된 상태로 저장되는 경우는
+  // 현재 없지만, 방어적으로 null 허용).
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   const { data, error } = await supabase
     .from("memory_entries")
     .insert({
@@ -174,6 +181,7 @@ export async function insertMemoryEntry(entry: DiaryEntry): Promise<boolean> {
       updated_at: null,
       mood_key: moodKey,
       weather_key: weatherKey,
+      user_id: user?.id ?? null,
     })
     .select("id")
     .single();
