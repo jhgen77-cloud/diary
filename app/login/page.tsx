@@ -41,13 +41,23 @@ export default function LoginPage() {
       <AuthCard
         footer={
           <>
-            계정이 없으신가요?{" "}
-            <Link
-              href="/signup"
-              className="text-[var(--accent)] hover:underline"
-            >
-              회원가입
-            </Link>
+            <p>
+              <Link
+                href="/forgot-password"
+                className="text-[var(--accent)] hover:underline"
+              >
+                비밀번호를 잊으셨나요?
+              </Link>
+            </p>
+            <p>
+              계정이 없으신가요?{" "}
+              <Link
+                href="/signup"
+                className="text-[var(--accent)] hover:underline"
+              >
+                회원가입
+              </Link>
+            </p>
           </>
         }
       >

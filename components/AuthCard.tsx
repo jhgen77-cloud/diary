@@ -16,7 +16,12 @@ export default function AuthCard({ children, footer }: AuthCardProps) {
         <Header />
         <div className="my-4 h-px w-full max-w-xs shrink-0 bg-[var(--border)] sm:my-6" />
         <div className="flex w-full flex-col gap-4">{children}</div>
-        <p className="mt-6 text-sm text-[var(--text-sub)]">{footer}</p>
+        {/* p가 아니라 div로 감쌉니다 — 로그인 페이지처럼 footer 안에 여러 줄
+           (비밀번호 찾기 링크 + 회원가입 링크)이 들어갈 수 있는데, p 안에
+           블록 요소를 넣으면 잘못된 HTML 중첩이 됩니다. */}
+        <div className="mt-6 flex flex-col items-center gap-2 text-sm text-[var(--text-sub)]">
+          {footer}
+        </div>
       </div>
     </div>
   );

@@ -54,3 +54,47 @@ export function getLoginErrorMessage(error: AuthError): string {
 
   return "로그인에 실패했습니다. 잠시 후 다시 시도해주세요.";
 }
+
+/** Supabase 비밀번호 재설정 메일 발송 오류를 화면에 보여줄 한국어 메시지로
+ * 변환합니다. resetPasswordForEmail은 계정 존재 여부를 숨기려고 가입 안 된
+ * 이메일에도 보통 성공을 돌려주므로(사용자 열거 공격 방지), 여기서 다루는
+ * 오류는 대부분 형식/속도 제한 관련입니다. */
+export function getResetPasswordErrorMessage(error: AuthError): string {
+  switch (error.code) {
+    case "email_address_invalid":
+    case "validation_failed":
+      return "올바른 이메일 형식이 아닙니다.";
+    case "over_email_send_rate_limit":
+    case "over_request_rate_limit":
+      return "잠시 후 다시 시도해주세요.";
+  }
+
+  const message = error.message ?? "";
+  if (/network/i.test(message)) {
+    return "네트워크 오류가 발생했습니다. 연결 상태를 확인해주세요.";
+  }
+
+  return "메일 발송에 실패했습니다. 잠시 후 다시 시도해주세요.";
+}
+
+/** 비밀번호 재설정 링크로 들어온 뒤 새 비밀번호로 바꾸는(updateUser) 단계의
+ * 오류를 화면에 보여줄 한국어 메시지로 변환합니다. */
+export function getUpdatePasswordErrorMessage(error: AuthError): string {
+  switch (error.code) {
+    case "weak_password":
+      return "비밀번호가 너무 약합니다. 6자 이상으로 입력해주세요.";
+    case "same_password":
+      return "이전과 동일한 비밀번호로는 변경할 수 없습니다.";
+    case "session_expired":
+    case "session_not_found":
+    case "bad_jwt":
+      return "인증이 만료되었습니다. 비밀번호 재설정을 다시 요청해주세요.";
+  }
+
+  const message = error.message ?? "";
+  if (/network/i.test(message)) {
+    return "네트워크 오류가 발생했습니다. 연결 상태를 확인해주세요.";
+  }
+
+  return "비밀번호 변경에 실패했습니다. 잠시 후 다시 시도해주세요.";
+}
