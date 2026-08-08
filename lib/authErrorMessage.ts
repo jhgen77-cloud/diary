@@ -98,3 +98,27 @@ export function getUpdatePasswordErrorMessage(error: AuthError): string {
 
   return "비밀번호 변경에 실패했습니다. 잠시 후 다시 시도해주세요.";
 }
+
+/** 카카오 등 OAuth(signInWithOAuth) 로그인 시작 단계의 오류를 화면에 보여줄
+ * 한국어 메시지로 변환합니다 — 실제 로그인 성공/실패는 카카오 화면으로
+ * 리다이렉트된 뒤 결정되므로, 여기서 다루는 건 그 리다이렉트 자체가 시작조차
+ * 못 한 경우(제공자 설정 누락 등)입니다. */
+export function getOAuthErrorMessage(error: AuthError): string {
+  switch (error.code) {
+    case "provider_disabled":
+    case "oauth_provider_not_supported":
+      return "카카오 로그인이 아직 설정되지 않았습니다.";
+    case "bad_oauth_state":
+    case "bad_oauth_callback":
+      return "카카오 로그인 처리 중 오류가 발생했습니다. 다시 시도해주세요.";
+    case "over_request_rate_limit":
+      return "잠시 후 다시 시도해주세요.";
+  }
+
+  const message = error.message ?? "";
+  if (/network/i.test(message)) {
+    return "네트워크 오류가 발생했습니다. 연결 상태를 확인해주세요.";
+  }
+
+  return "카카오 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.";
+}

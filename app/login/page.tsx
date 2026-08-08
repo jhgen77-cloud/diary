@@ -8,13 +8,14 @@ import AuthField from "@/components/AuthField";
 import AuthSubmitButton from "@/components/AuthSubmitButton";
 import Toast from "@/components/Toast";
 import { createClient } from "@/utils/supabase/client";
-import { getLoginErrorMessage } from "@/lib/authErrorMessage";
+import { getLoginErrorMessage, getOAuthErrorMessage } from "@/lib/authErrorMessage";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [kakaoSubmitting, setKakaoSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const canSubmit = email !== "" && password !== "";
@@ -34,6 +35,24 @@ export default function LoginPage() {
     }
 
     router.push("/");
+  }
+
+  async function handleKakaoLogin() {
+    if (kakaoSubmitting) return;
+    setKakaoSubmitting(true);
+    const supabase = createClient();
+    // 성공하면 카카오 로그인 화면으로 리다이렉트되어 이 페이지를 벗어나므로,
+    // 여기서 실패(설정 누락 등)한 경우에만 에러를 보여주면 됩니다.
+    // redirectTo는 메인 페이지가 아니라 /auth/callback으로 보내 code를
+    // 세션으로 교환한 뒤 메인 페이지로 다시 리다이렉트되게 합니다.
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "kakao",
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=/` },
+    });
+    if (error) {
+      setKakaoSubmitting(false);
+      setErrorMessage(getOAuthErrorMessage(error));
+    }
   }
 
   return (
@@ -89,9 +108,12 @@ export default function LoginPage() {
           <AuthSubmitButton type="submit" disabled={!canSubmit || submitting}>
             로그인
           </AuthSubmitButton>
-          {/* 카카오 OAuth는 Supabase 프로젝트에 직접 설정할 예정이라, 지금은
-              기능 연결 없이 버튼만 둡니다(눌러도 아무 동작 안 함). */}
-          <AuthSubmitButton type="button" variant="kakao">
+          <AuthSubmitButton
+            type="button"
+            variant="kakao"
+            onClick={handleKakaoLogin}
+            disabled={kakaoSubmitting}
+          >
             카카오 로그인
           </AuthSubmitButton>
         </form>
