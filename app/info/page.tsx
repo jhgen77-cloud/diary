@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Modal from "@/components/Modal";
 import InfoContent from "@/components/InfoContent";
+import { buildPageMetadata } from "@/lib/pageMetadata";
+
+export const metadata: Metadata = buildPageMetadata(
+  "정보 및 도움말",
+  "기억 앱 사용법을 안내합니다."
+);
 
 // app/@modal/(.)info/page.tsx와 내용이 같습니다. 직접 접속/새로고침 시엔
 // 인터셉트 라우트가 적용되지 않으므로(다른 /diary, /data, /settings 경로와

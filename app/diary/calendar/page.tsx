@@ -1,7 +1,14 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import Modal from "@/components/Modal";
 import DiaryCalendarBrowserData from "@/components/DiaryCalendarBrowserData";
 import DiaryLoadingIndicator from "@/components/DiaryLoadingIndicator";
+import { buildPageMetadata } from "@/lib/pageMetadata";
+
+export const metadata: Metadata = buildPageMetadata(
+  "그날을 거닐다 · 달력",
+  "날짜별로 기록을 살펴보세요."
+);
 
 // app/@modal/(.)diary/calendar/page.tsx와 내용이 같습니다. 직접 접속/새로고침
 // 시엔 인터셉트 라우트가 적용되지 않으므로 같은 내용을 그대로 미러링합니다.

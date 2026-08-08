@@ -1,7 +1,14 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import Modal from "@/components/Modal";
 import DiaryBrowserData from "@/components/DiaryBrowserData";
 import DiaryLoadingIndicator from "@/components/DiaryLoadingIndicator";
+import { buildPageMetadata } from "@/lib/pageMetadata";
+
+export const metadata: Metadata = buildPageMetadata(
+  "그날을 거닐다",
+  "지나온 하루들을 다시 걸어보세요."
+);
 
 // app/@modal/(.)diary/page.tsx와 내용이 같습니다. "/"에서 클릭해 들어오면
 // 그쪽(가로채기 라우트)이 모달로 띄우지만, 이 경로로 직접 접속하거나 새로고침

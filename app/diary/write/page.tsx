@@ -1,6 +1,13 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import Modal from "@/components/Modal";
 import DiaryWriteForm from "@/components/DiaryWriteForm";
+import { buildPageMetadata } from "@/lib/pageMetadata";
+
+export const metadata: Metadata = buildPageMetadata(
+  "시간을 붙잡다",
+  "오늘의 마음을 붙잡아 기록하세요."
+);
 
 // app/@modal/(.)diary/write/page.tsx와 내용이 같습니다. 직접 접속/새로고침 시엔
 // 인터셉트 라우트가 적용되지 않아 이 파일(children 슬롯)만 렌더링되므로, 같은
