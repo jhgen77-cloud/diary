@@ -58,8 +58,8 @@ export default function DataResetPanel() {
             기억의 은하
           </span>
         </Tooltip>
-        <span className="min-w-0 flex-1 text-xs text-[var(--text-sub)] sm:text-sm">
-          Supabase(memory_entries 등) + 브라우저 메모리(세션 동안만)
+        <span className="min-w-0 flex-1 truncate text-xs text-[var(--text-sub)] sm:text-sm">
+          Supabase + 브라우저 메모리(세션)
         </span>
       </div>
 

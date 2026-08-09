@@ -184,15 +184,23 @@ export default function Modal({
         ref={boxRef}
         style={{
           transform: `translate(${offset.x}px, ${offset.y}px)`,
-          ...(heightVh && !isMinimized ? { height: `${heightVh}vh` } : {}),
+          ...(heightVh && !isMinimized ? { height: `${heightVh}dvh` } : {}),
         }}
         className={`flex w-full flex-col rounded-3xl border border-[var(--border)] bg-[var(--card)] ${
           overlay ? "" : "pointer-events-auto"
         } ${dimensionClass}`}
       >
+        {/* showWindowControls가 false인 모달(환경 설정 등)은 최소화/최대화
+           버튼 자체를 숨겨서 "떠다니는 창"이 아니라 고정된 대화상자처럼
+           보이게 했는데, 정작 헤더는 여전히 드래그가 가능해 사용자가 제목
+           영역을 살짝 건드리기만 해도 전체 모달이 상하좌우로 밀려나는
+           문제가 있었습니다(실제로 겪은 문제) — 창 컨트롤을 숨긴 모달은
+           드래그도 함께 꺼서, 보이는 대로(고정 대화상자) 동작하게 합니다. */}
         <header
-          onPointerDown={handleHeaderPointerDown}
-          className="flex shrink-0 cursor-grab items-center justify-between gap-4 px-6 py-4 touch-none select-none active:cursor-grabbing sm:px-8"
+          onPointerDown={showWindowControls ? handleHeaderPointerDown : undefined}
+          className={`flex shrink-0 items-center justify-between gap-4 px-6 py-4 select-none sm:px-8 ${
+            showWindowControls ? "cursor-grab touch-none active:cursor-grabbing" : ""
+          }`}
         >
           <span className="truncate text-lg font-semibold text-[var(--text)] sm:text-xl">
             {title}
