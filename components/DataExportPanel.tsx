@@ -134,8 +134,8 @@ export default function DataExportPanel() {
             selected={format === "zip"}
             onSelect={() => setFormat("zip")}
           >
-            <div className="flex items-center gap-2 pt-0.5">
-              <p className="text-xs font-semibold text-[var(--text)] sm:text-sm">
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+              <p className="shrink-0 text-xs font-semibold whitespace-nowrap text-[var(--text)] sm:text-sm">
                 파일 생성 옵션
               </p>
               <DataExportSplitOptions
@@ -151,8 +151,8 @@ export default function DataExportPanel() {
             selected={format === "txt"}
             onSelect={() => setFormat("txt")}
           >
-            <div className="flex items-center gap-2 pt-0.5">
-              <p className="text-xs font-semibold text-[var(--text)] sm:text-sm">
+            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+              <p className="shrink-0 text-xs font-semibold whitespace-nowrap text-[var(--text)] sm:text-sm">
                 파일 생성 옵션
               </p>
               <DataExportSplitOptions

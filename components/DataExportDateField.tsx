@@ -31,7 +31,7 @@ export default function DataExportDateField({
   const isPickerVisible = isPickerOpen && !disabled;
 
   return (
-    <div className="flex shrink-0 flex-nowrap items-center gap-1.5">
+    <div className="flex shrink-0 flex-wrap items-center gap-1.5">
       <span className="shrink-0 rounded-lg border border-[var(--border)] px-4 py-1 text-center text-xs font-medium whitespace-nowrap text-[var(--text-sub)] sm:px-5 sm:py-1.5 sm:text-sm">
         {label}
       </span>

@@ -40,7 +40,7 @@ export default function DiaryWeatherField({
   return (
     <div
       ref={containerRef}
-      className="flex min-w-0 flex-1 items-center gap-2"
+      className="flex min-w-[9.5rem] flex-1 items-center gap-2"
     >
       <FieldLabel>날씨</FieldLabel>
       <div className="relative min-w-0 flex-1">
