@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import SettingsSidebar from "@/components/SettingsSidebar";
 import FontSettingsPanel from "@/components/FontSettingsPanel";
 import BackgroundSettingsPanel from "@/components/BackgroundSettingsPanel";
+import EncryptionSettingsPanel from "@/components/EncryptionSettingsPanel";
 import NoticeDialog from "@/components/NoticeDialog";
 import { letterIIcon } from "@/lib/diaryIcons";
 import {
@@ -69,6 +70,10 @@ export default function SettingsManager() {
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto">
           <FontSettingsPanel settings={draft} onChange={updateDraft} />
           <BackgroundSettingsPanel settings={draft} onChange={updateDraft} />
+          {/* 폰트/배경 설정과 달리 draft(확인/적용 필요)를 쓰지 않습니다 —
+             누르는 즉시 서버 설정과 세션 키에 반영되는 별개의 동작이라
+             이 컴포넌트가 값을 대신 들고 있지 않습니다. */}
+          <EncryptionSettingsPanel />
         </div>
       </div>
 

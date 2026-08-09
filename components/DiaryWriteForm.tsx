@@ -35,6 +35,7 @@ import {
   useSavedDiaryEntries,
 } from "@/lib/savedDiaryEntries";
 import { useEnvironmentSettings } from "@/lib/environmentSettings";
+import { useEncryptionSetupStatus, useUnlockedKey } from "@/lib/diaryEncryptionKey";
 import {
   insertMemoryEntry,
   updateMemoryEntry,
@@ -64,7 +65,8 @@ type DialogState =
   | { type: "duplicate-date" }
   | { type: "delete-confirm" }
   | { type: "delete-done" }
-  | { type: "close-confirm" };
+  | { type: "close-confirm" }
+  | { type: "encryption-locked" };
 
 export default function DiaryWriteForm() {
   const router = useRouter();
@@ -80,6 +82,13 @@ export default function DiaryWriteForm() {
   // 환경 설정(SettingsManager)에서 고른 값 — "시간을 붙잡다"에서만 실제로
   // 적용됩니다(요구사항). 제목란은 폰트명/폰트 색상만, 본문란은 다섯 항목 모두.
   const envSettings = useEnvironmentSettings();
+  // "일기 암호"가 설정은 됐는데 이번 세션에 아직 안 풀려 있으면(암호 입력
+  // 전) 저장을 막습니다 — 막지 않으면 insertMemoryEntry/updateMemoryEntry가
+  // key 없이 조용히 평문으로 저장해버려, 사용자가 "당연히 암호화됐겠지"라고
+  // 착각한 채 평문 글이 쌓이는 문제가 생길 수 있습니다.
+  const { isSetUp: encryptionSetUp } = useEncryptionSetupStatus();
+  const encryptionKey = useUnlockedKey();
+  const encryptionLocked = encryptionSetUp && !encryptionKey;
 
   // 하루에 일기는 하나만 쓸 수 있습니다 — 저장 시 이 목록(로컬 저장 글 +
   // Supabase에 이미 있는 글)에서 같은 날짜를 가진 다른 글이 있는지 확인합니다
@@ -345,6 +354,10 @@ export default function DiaryWriteForm() {
     // 버튼은 saveDisabled일 때 pointer-events-none으로 막아두지만, 방어적으로
     // 한 번 더 확인합니다(entryId/전체 목록이 아직 준비 전이면 저장하지 않음).
     if (saveDisabled) return;
+    if (encryptionLocked) {
+      setDialog({ type: "encryption-locked" });
+      return;
+    }
     if (content.trim() === "") {
       setDialog({ type: "empty-content" });
       return;
@@ -624,6 +637,17 @@ export default function DiaryWriteForm() {
           cancelLabel="아니요"
           onCancel={handleCancelClose}
           confirmFirst
+        />
+      )}
+      {dialog.type === "encryption-locked" && (
+        <NoticeDialog
+          icon={warningSignIcon}
+          message={"일기 암호가 아직 잠겨있습니다.\n환경설정에서 암호를 입력한 뒤 다시 저장해주세요."}
+          confirmLabel="환경설정으로"
+          onConfirm={() => router.push("/settings")}
+          cancelLabel="취소"
+          onCancel={() => setDialog({ type: "none" })}
+          wide
         />
       )}
     </>

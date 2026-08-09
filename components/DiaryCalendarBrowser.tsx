@@ -7,6 +7,7 @@ import DiaryCalendar from "@/components/DiaryCalendar";
 import type { DiaryEntry } from "@/lib/mockDiaryEntries";
 import { useSavedDiaryEntries } from "@/lib/savedDiaryEntries";
 import { suppressSyncedDuplicates, suppressDeletedEntries } from "@/lib/memoryEntries";
+import { useDecryptedEntries } from "@/lib/decryptDiaryEntry";
 
 interface DiaryCalendarBrowserProps {
   /** Supabase(memory_entries)에서 Server Component가 미리 가져온 글 목록
@@ -19,6 +20,11 @@ export default function DiaryCalendarBrowser({
   entries,
 }: DiaryCalendarBrowserProps) {
   const savedEntries = useSavedDiaryEntries();
+  // 서버가 내려준 entries는 암호화된 글이면 title이 암호문 그대로일 수
+  // 있어, 화면에 쓰기 전에 이 훅으로 복호화합니다(잠겨 있으면 자리표시자로
+  // 대체 — lib/decryptDiaryEntry.ts 참고). savedEntries(로컬 저장, 이번 세션에
+  // 직접 쓴 글)는 애초에 평문이라 그대로 씁니다.
+  const decryptedEntries = useDecryptedEntries(entries);
   // "시간을 붙잡다"에서 저장한 글(로컬 저장)을 서버가 내려준 목록 뒤에 붙여서,
   // 같은 날짜에 다른 항목이 있어도 이번 세션에 새로 저장한 글이 달력 칸에
   // 우선 표시되게 합니다.
@@ -32,7 +38,9 @@ export default function DiaryCalendarBrowser({
   // 스냅샷을 재사용해 지운 글이 그대로 남아있을 수도 있어(실제로 겪은 문제 —
   // 새로고침하면 정상으로 돌아옴), suppressDeletedEntries로 이번 세션에 지운
   // 글도 함께 걸러냅니다.
-  const remoteEntries = suppressDeletedEntries(suppressSyncedDuplicates(entries, savedEntries));
+  const remoteEntries = suppressDeletedEntries(
+    suppressSyncedDuplicates(decryptedEntries, savedEntries)
+  );
   const mergedEntries = [...remoteEntries, ...savedEntries];
 
   const today = new Date();

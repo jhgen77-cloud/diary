@@ -23,7 +23,14 @@ export async function fetchMemoryEntriesServer(): Promise<DiaryEntry[]> {
 
   const { data, error } = await supabase
     .from("memory_entries")
-    .select("id, title, has_attachment, created_at, entry_date, mood_key, weather_key")
+    // title_iv까지 함께 내려줍니다 — 암호화된 글이면 title이 암호문이라,
+    // 클라이언트가 마운트된 뒤 unlock된 키가 있으면 이 값으로 복호화합니다
+    // (이 파일은 서버에서만 실행되어 그 키에 접근할 수 없으므로 여기선
+    // 복호화하지 않고 그대로 내려보내기만 합니다 — components/DiaryBrowser.tsx,
+    // DiaryCalendarBrowser.tsx의 useDecryptedEntries 참고).
+    .select(
+      "id, title, has_attachment, created_at, entry_date, mood_key, weather_key, encrypted, title_iv"
+    )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 

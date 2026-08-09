@@ -11,6 +11,7 @@ import DataExportDateRangeSection from "@/components/DataExportDateRangeSection"
 import { letterIIcon, warningSignIcon } from "@/lib/diaryIcons";
 import { useSavedDiaryEntries } from "@/lib/savedDiaryEntries";
 import { useMemoryEntriesFull, deleteDiaryEntryEverywhere } from "@/lib/memoryEntries";
+import { useUnlockedKey } from "@/lib/diaryEncryptionKey";
 import {
   type DateValue,
   type ExportFormat,
@@ -39,7 +40,14 @@ export default function DataExportPanel() {
   // 문제 — 그 백업을 나중에 다시 가져오면 Supabase 원본까지 빈 본문으로
   // 덮어써짐).
   const { entries: remoteEntries } = useMemoryEntriesFull(savedEntries);
-  const entries = [...savedEntries, ...remoteEntries];
+  const encryptionKey = useUnlockedKey();
+  const allEntries = [...savedEntries, ...remoteEntries];
+  // 암호화된 글인데 이번 세션에 아직 암호를 안 풀었으면(잠김) title/content가
+  // "🔒 암호로 보호된 일기" 자리표시자로 채워져 있습니다(lib/decryptDiaryEntry.ts
+  // 참고) — 이 상태 그대로 백업 파일에 담으면 실제 내용 대신 그 문구가 영구히
+  // 남는 잘못된 백업이 됩니다. 잠긴 글은 아예 내보내기 대상에서 제외합니다.
+  const lockedCount = allEntries.filter((entry) => entry.encrypted && !encryptionKey).length;
+  const entries = allEntries.filter((entry) => !entry.encrypted || encryptionKey);
 
   const [format, setFormat] = useState<ExportFormat>("zip");
   // ZIP/TXT 각자 '파일 생성 옵션'을 따로 기억합니다 — 형식을 바꿔도 이전에 고른
@@ -106,7 +114,13 @@ export default function DataExportPanel() {
         // 있었습니다(실제로 겪은 문제).
         await Promise.all(targets.map((entry) => deleteDiaryEntryEverywhere(entry.id)));
       }
-      setNotice({ icon: letterIIcon, message: `일기 ${exportedCount}개를 내보냈습니다.` });
+      setNotice({
+        icon: letterIIcon,
+        message:
+          lockedCount > 0
+            ? `일기 ${exportedCount}개를 내보냈습니다.\n(잠긴 일기 ${lockedCount}개는 제외됨 — 환경설정에서 암호를 풀고 다시 시도해주세요.)`
+            : `일기 ${exportedCount}개를 내보냈습니다.`,
+      });
     } catch (error) {
       console.error("내보내기 실패", error);
       setNotice({ icon: warningSignIcon, message: "내보내는 중 오류가 발생했습니다." });

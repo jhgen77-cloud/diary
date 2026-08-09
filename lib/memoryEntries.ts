@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import type { DiaryEntry } from "@/lib/mockDiaryEntries";
 import { removeSavedDiaryEntry } from "@/lib/savedDiaryEntries";
 import type { MoodKey, WeatherKey } from "@/lib/diaryIcons";
 import { REMOTE_ID_PREFIX, rowToEntry } from "@/lib/memoryEntriesShared";
 import { onUserIdChange, useCurrentUserId } from "@/lib/authUserId";
+import { getUnlockedKey, useUnlockedKey } from "@/lib/diaryEncryptionKey";
+import { encryptBlob, encryptText } from "@/lib/diaryEncryption";
+import { decryptDiaryEntryForDisplay, revokeDecryptedImageUrls } from "@/lib/decryptDiaryEntry";
 
 type SupabaseClient = ReturnType<typeof createClient>;
 
@@ -100,17 +103,26 @@ async function clearEntryImages(supabase: SupabaseClient, folderKey: string): Pr
 async function uploadEntryImages(
   supabase: SupabaseClient,
   folderKey: string,
-  images: string[]
+  images: string[],
+  // key가 있으면 "일기 암호"가 unlock된 상태라는 뜻 — 업로드 전에 바이트
+  // 자체를 암호화합니다(lib/diaryEncryption.ts의 encryptBlob, IV를 파일
+  // 앞에 내장). DB 관리자가 Storage 버킷을 직접 열어봐도 암호문만 보이게
+  // 하려는 목적이라, key가 있는 동안은 항상 암호화해서 올립니다.
+  key: CryptoKey | null
 ): Promise<string[] | null> {
   if (images.length === 0) return null;
 
   const urls: string[] = [];
   for (let index = 0; index < images.length; index += 1) {
-    const blob = await (await fetch(images[index])).blob();
+    const rawBlob = await (await fetch(images[index])).blob();
+    const blob = key ? await encryptBlob(key, rawBlob) : rawBlob;
     const path = `${folderKey}/${index}.jpg`;
     const { error } = await supabase.storage
       .from(DIARY_IMAGES_BUCKET)
-      .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+      .upload(path, blob, {
+        contentType: key ? "application/octet-stream" : "image/jpeg",
+        upsert: true,
+      });
     if (error) throw error;
 
     const { data } = supabase.storage.from(DIARY_IMAGES_BUCKET).getPublicUrl(path);
@@ -131,6 +143,9 @@ interface EncodedEntryFields {
   entry_date: string;
   mood_key: MoodKey;
   weather_key: WeatherKey | null;
+  encrypted: boolean;
+  title_iv: string | null;
+  text_iv: string | null;
 }
 
 /** insertMemoryEntry/updateMemoryEntry가 공통으로 쓰는 컬럼 값 인코딩(첨부
@@ -138,16 +153,38 @@ interface EncodedEntryFields {
  * weather_key에는 실제 선택된 키(예: "smile", "rain")를 그대로 저장합니다 —
  * 예전엔 mood/weather 컬럼에 아이콘 이미지(data URL)까지 통째로 중복 저장했지만,
  * 화면은 애초에 이 키만 보고 MOOD_ICONS/WEATHER_ICONS로 그리므로 그 컬럼은
- * 스키마에서 제거했습니다. */
-function encodeEntryFields(entry: DiaryEntry): EncodedEntryFields {
-  return {
-    title: entry.title,
-    text: entry.content,
+ * 스키마에서 제거했습니다.
+ *
+ * key가 있으면("일기 암호"가 이번 세션에 unlock된 상태) 제목/본문을
+ * 암호화해서 담습니다 — DB를 직접 들여다보는 관리자도 원문을 못 보게 하는
+ * 것이 목적이라, key가 있는 동안은 항상 암호화합니다(글마다 따로 켜고 끄는
+ * 옵션은 없음). key가 없으면 지금까지처럼 평문 그대로 저장합니다(암호를
+ * 아직 설정하지 않은 사용자는 기존과 동일하게 동작). */
+async function encodeEntryFields(
+  entry: DiaryEntry,
+  key: CryptoKey | null
+): Promise<EncodedEntryFields> {
+  const base = {
     has_attachment: entry.hasAttachment,
     created_at: toLocalWallClockTimestamp(entry.createdAt),
     entry_date: entry.date,
     mood_key: entry.mood,
     weather_key: entry.weather,
+  };
+
+  if (!key) {
+    return { ...base, title: entry.title, text: entry.content, encrypted: false, title_iv: null, text_iv: null };
+  }
+
+  const encryptedTitle = await encryptText(key, entry.title);
+  const encryptedText = await encryptText(key, entry.content);
+  return {
+    ...base,
+    title: encryptedTitle.cipher,
+    text: encryptedText.cipher,
+    encrypted: true,
+    title_iv: encryptedTitle.iv,
+    text_iv: encryptedText.iv,
   };
 }
 
@@ -163,6 +200,7 @@ function encodeEntryFields(entry: DiaryEntry): EncodedEntryFields {
  * 순서로 진행합니다. */
 export async function insertMemoryEntry(entry: DiaryEntry): Promise<boolean> {
   const supabase = createClient();
+  const key = getUnlockedKey();
   const {
     title,
     text,
@@ -171,7 +209,10 @@ export async function insertMemoryEntry(entry: DiaryEntry): Promise<boolean> {
     entry_date: entryDate,
     mood_key: moodKey,
     weather_key: weatherKey,
-  } = encodeEntryFields(entry);
+    encrypted,
+    title_iv: titleIv,
+    text_iv: textIv,
+  } = await encodeEntryFields(entry, key);
 
   // 글마다 작성자를 저장해둬야 사용자별로 데이터를 분리해서 불러올 수
   // 있습니다. user_id는 NOT NULL이라, 로그인 안 된 상태(정상 흐름상 일어나지
@@ -199,6 +240,9 @@ export async function insertMemoryEntry(entry: DiaryEntry): Promise<boolean> {
       mood_key: moodKey,
       weather_key: weatherKey,
       user_id: user.id,
+      encrypted,
+      title_iv: titleIv,
+      text_iv: textIv,
     })
     .select("id")
     .single();
@@ -210,7 +254,7 @@ export async function insertMemoryEntry(entry: DiaryEntry): Promise<boolean> {
 
   if (entry.images.length > 0) {
     try {
-      const imageUrls = await uploadEntryImages(supabase, String(data.id), entry.images);
+      const imageUrls = await uploadEntryImages(supabase, String(data.id), entry.images, key);
       const { error: imageError } = await supabase
         .from("memory_entries")
         .update({ image: imageUrls })
@@ -271,6 +315,7 @@ export async function updateMemoryEntry(entryId: string, entry: DiaryEntry): Pro
   }
   if (!existing) return false;
 
+  const key = getUnlockedKey();
   const {
     title,
     text,
@@ -279,14 +324,17 @@ export async function updateMemoryEntry(entryId: string, entry: DiaryEntry): Pro
     entry_date: entryDate,
     mood_key: moodKey,
     weather_key: weatherKey,
-  } = encodeEntryFields(entry);
+    encrypted,
+    title_iv: titleIv,
+    text_iv: textIv,
+  } = await encodeEntryFields(entry, key);
 
   const folderKey = String(numericId);
   await clearEntryImages(supabase, folderKey);
 
   let imageUrls: string[] | null = null;
   try {
-    imageUrls = await uploadEntryImages(supabase, folderKey, entry.images);
+    imageUrls = await uploadEntryImages(supabase, folderKey, entry.images, key);
   } catch (uploadError) {
     console.error("첨부 이미지 업로드 실패", uploadError);
   }
@@ -307,6 +355,9 @@ export async function updateMemoryEntry(entryId: string, entry: DiaryEntry): Pro
       updated_at: toLocalWallClockTimestamp(new Date().toISOString()),
       mood_key: moodKey,
       weather_key: weatherKey,
+      encrypted,
+      title_iv: titleIv,
+      text_iv: textIv,
     })
     .eq("id", numericId)
     .eq("user_id", user.id);
@@ -458,7 +509,12 @@ export async function fetchMemoryEntries(): Promise<DiaryEntry[]> {
 
   const { data, error } = await supabase
     .from("memory_entries")
-    .select("id, title, has_attachment, created_at, entry_date, mood_key, weather_key")
+    // 목록에도 제목이 보이니(암호화된 글이면 title이 암호문) title_iv까지
+    // 함께 가져와야 클라이언트에서 복호화할 수 있습니다. text_iv는 본문을
+    // 아예 select하지 않는 이 조회에선 필요 없습니다.
+    .select(
+      "id, title, has_attachment, created_at, entry_date, mood_key, weather_key, encrypted, title_iv"
+    )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -489,7 +545,9 @@ export async function fetchMemoryEntriesFull(): Promise<DiaryEntry[]> {
 
   const { data, error } = await supabase
     .from("memory_entries")
-    .select("id, title, text, image, created_at, entry_date, updated_at, mood_key, weather_key")
+    .select(
+      "id, title, text, image, created_at, entry_date, updated_at, mood_key, weather_key, encrypted, title_iv, text_iv"
+    )
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -530,7 +588,9 @@ export async function fetchMemoryEntryById(entryId: string): Promise<DiaryEntry 
 
   const { data, error } = await supabase
     .from("memory_entries")
-    .select("id, title, text, image, created_at, entry_date, updated_at, mood_key, weather_key")
+    .select(
+      "id, title, text, image, created_at, entry_date, updated_at, mood_key, weather_key, encrypted, title_iv, text_iv"
+    )
     .eq("id", numericId)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -591,18 +651,32 @@ function useMemoryEntriesWith(
   // 기준으로 불러온 목록이 남아있으면 안 되므로, userId를 의존성에 넣어
   // 계정이 바뀔 때마다 처음부터 다시 불러옵니다.
   const userId = useCurrentUserId();
+  // "일기 암호"가 이번 세션에 unlock되면(또는 다시 잠기면) 이미 받아온
+  // 암호문을 다시 복호화해서 보여줘야 하므로 키도 의존성에 넣습니다 —
+  // 매번 새로 fetch까지 하지만, 이 앱 규모(개인용)에서는 그 정도 재조회
+  // 비용이 무시할 만합니다.
+  const key = useUnlockedKey();
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   // 마지막으로 fetcher 결과를 반영한 시점의 userId를 기록해뒀다가 현재
   // userId와 비교하는 것으로 loading 여부를 판단합니다 — effect 안에서
   // setLoading(true)를 동기 호출하지 않기 위함입니다(react-hooks 린트 규칙:
   // effect 본문에서 곧바로 setState하면 안 됨).
   const [loadedFor, setLoadedFor] = useState<{ userId: typeof userId } | null>(null);
+  // decryptDiaryEntryForDisplay가 첨부 이미지마다 만들어내는 blob URL을
+  // 다음 갱신 때 해제하기 위한 참조(메모리 누수 방지).
+  const previousEntriesRef = useRef<DiaryEntry[]>([]);
 
   useEffect(() => {
     let cancelled = false;
-    fetcher().then((fetched) => {
+    fetcher().then(async (fetched) => {
       if (cancelled) return;
-      setEntries(fetched);
+      const decrypted = await Promise.all(
+        fetched.map((entry) => decryptDiaryEntryForDisplay(entry, key))
+      );
+      if (cancelled) return;
+      previousEntriesRef.current.forEach(revokeDecryptedImageUrls);
+      previousEntriesRef.current = decrypted;
+      setEntries(decrypted);
       setLoadedFor({ userId });
     });
     return () => {
@@ -611,7 +685,7 @@ function useMemoryEntriesWith(
     // fetcher는 모듈 top-level 함수(fetchMemoryEntries/fetchMemoryEntriesFull)라
     // 참조가 항상 안정적이라 deps에서 뺍니다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, key]);
 
   const loading = loadedFor === null || loadedFor.userId !== userId;
 
@@ -670,7 +744,11 @@ export function useRemoteMemoryEntry(id: string | null | undefined): UseRemoteMe
   // 확인하지만, userId가 안 바뀌면 effect가 재실행되지 않아 화면이 갱신되지
   // 않습니다.
   const userId = useCurrentUserId();
+  // 잠금 해제/재잠금 시 이미 받아온 글을 다시 복호화해서 보여주기 위해
+  // 키도 의존성에 넣습니다(useMemoryEntriesWith와 같은 이유).
+  const key = useUnlockedKey();
   const [entry, setEntry] = useState<DiaryEntry | null>(null);
+  const previousEntryRef = useRef<DiaryEntry | null>(null);
   // 마지막으로 조회를 마친 (id, userId) 조합. 둘 중 하나라도 다르면 아직 그
   // 조합의 결과를 기다리는 중이라는 뜻이라 loading 여부를 여기서 판단합니다
   // (effect 안에서 setState를 동기 호출하지 않기 위해, 별도 loading state
@@ -682,15 +760,19 @@ export function useRemoteMemoryEntry(id: string | null | undefined): UseRemoteMe
   useEffect(() => {
     if (!remoteId) return;
     let cancelled = false;
-    fetchMemoryEntryById(remoteId).then((fetched) => {
+    fetchMemoryEntryById(remoteId).then(async (fetched) => {
       if (cancelled) return;
-      setEntry(fetched);
+      const decrypted = fetched ? await decryptDiaryEntryForDisplay(fetched, key) : null;
+      if (cancelled) return;
+      if (previousEntryRef.current) revokeDecryptedImageUrls(previousEntryRef.current);
+      previousEntryRef.current = decrypted;
+      setEntry(decrypted);
       setLoadedFor({ remoteId, userId });
     });
     return () => {
       cancelled = true;
     };
-  }, [remoteId, userId]);
+  }, [remoteId, userId, key]);
 
   if (!remoteId) return { entry: null, loading: false };
   const loading =

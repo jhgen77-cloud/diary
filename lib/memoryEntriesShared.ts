@@ -61,6 +61,12 @@ export interface MemoryEntryRow {
   updated_at?: string | null;
   mood_key: string;
   weather_key: string | null;
+  /** true면 title/text가 암호문(base64)입니다 — lib/diaryEncryptionKey.ts로
+   * 설정한 "일기 암호"로 저장한 글만 해당. 옛 컬럼이 없던 행을 위해
+   * optional로 두고, 없으면 평문(false)으로 취급합니다. */
+  encrypted?: boolean;
+  title_iv?: string | null;
+  text_iv?: string | null;
 }
 
 /** memory_entries 행을 DiaryEntry로 변환합니다. mood_key/weather_key만으로
@@ -89,5 +95,13 @@ export function rowToEntry(row: MemoryEntryRow): DiaryEntry {
     createdAt: localCreatedAt.toISOString(),
     updatedAt: localUpdatedAt ? localUpdatedAt.toISOString() : undefined,
     source: "remote",
+    // 여기서는 그대로 옮겨 담기만 하고 복호화하지 않습니다 — 이 파일은
+    // Server Component(lib/memoryEntries.server.ts)에서도 쓰이는데, 복호화
+    // 키는 사용자가 브라우저에 입력한 암호로만 나오는 세션 메모리 값이라
+    // 서버에선 애초에 접근할 수 없습니다. 실제 복호화는 클라이언트에서
+    // lib/decryptDiaryEntry.ts가 담당합니다.
+    encrypted: row.encrypted ?? false,
+    titleIv: row.title_iv ?? undefined,
+    contentIv: row.text_iv ?? undefined,
   };
 }

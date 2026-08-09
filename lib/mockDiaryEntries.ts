@@ -26,6 +26,15 @@ export interface DiaryEntry {
    * 반영하는 기능은 없어(저장 시 추가만 구현), 상세 화면에서 해당 버튼을
    * 숨기는 데 씁니다. */
   source?: "remote";
+  /** true면 title/content가 평문이 아니라 암호문(base64)입니다 — "일기 암호"를
+   * 설정한 뒤 저장한 글만 해당(lib/diaryEncryptionKey.ts 참고). 화면에 쓰기
+   * 전엔 반드시 lib/decryptDiaryEntry.ts의 decryptDiaryEntryForDisplay를
+   * 거쳐야 합니다. */
+  encrypted?: boolean;
+  /** title 암호화에 쓰인 IV(base64). encrypted가 true일 때만 있습니다. */
+  titleIv?: string;
+  /** content(본문) 암호화에 쓰인 IV(base64). encrypted가 true일 때만 있습니다. */
+  contentIv?: string;
 }
 
 const WEEKDAYS_KO = ["일", "월", "화", "수", "목", "금", "토"];
