@@ -38,12 +38,15 @@ export default function HelpSection({ section }: HelpSectionProps) {
         ))}
       </ul>
       {section.links && (
+        // "※ 데이터 백업 및 복원방법 안내" 같은 하이퍼링크 문구는 폰트 색상을
+        // 검정색으로 해달라는 요구사항 때문에 text-[var(--accent)] 대신
+        // text-black을 씁니다(이 앱엔 다크 테마가 없어 고정값이 안전합니다).
         <div className="mt-1 flex flex-col gap-1 border-t border-[var(--border)] pt-2">
           {section.links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="text-xs break-keep text-[var(--accent)] hover:underline sm:text-sm"
+              className="text-xs break-keep text-black hover:underline sm:text-sm"
             >
               {link.label}
             </Link>
