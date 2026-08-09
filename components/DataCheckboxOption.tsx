@@ -20,7 +20,7 @@ export default function DataCheckboxOption({
       aria-checked={checked}
       disabled={disabled}
       onClick={onChange}
-      className="flex shrink-0 items-center gap-2 rounded-xl px-1 py-1 text-left transition-colors hover:bg-[var(--hover)] disabled:pointer-events-none disabled:opacity-40"
+      className="flex min-w-0 items-center gap-2 rounded-xl px-1 py-1 text-left transition-colors hover:bg-[var(--hover)] disabled:pointer-events-none disabled:opacity-40"
     >
       <span
         className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-md border transition-colors ${
