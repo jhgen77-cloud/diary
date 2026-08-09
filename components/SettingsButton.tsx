@@ -5,7 +5,7 @@ import Tooltip from "@/components/Tooltip";
 
 export default function SettingsButton() {
   return (
-    <Tooltip label="설정">
+    <Tooltip label="설정" tapToReveal>
       <Link
         href="/settings"
         aria-label="설정"

@@ -7,7 +7,7 @@ import Tooltip from "@/components/Tooltip";
  * 나란히 놓입니다(둘을 함께 배치하는 실제 위치 지정은 app/page.tsx가 담당). */
 export default function InfoButton() {
   return (
-    <Tooltip label="정보">
+    <Tooltip label="정보" tapToReveal>
       <Link
         href="/info"
         aria-label="정보"

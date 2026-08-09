@@ -12,9 +12,11 @@ export default function DataSidebar() {
          오른쪽(본문 쪽 여유 공간)으로 펼치게 해 모달 밖으로 벗어나지 않게 합니다.
          좁은 화면(w-16)에서는 "기억의 조율" 다섯 글자가 nowrap으로 다 안 들어와
          옆 본문 쪽으로 삐져나왔던 문제가 있어, 여기서만 줄바꿈을 허용합니다
-         (sm 이상은 폭이 넉넉해 원래대로 한 줄로 보여도 됩니다). */}
+         (sm 이상은 폭이 넉넉해 원래대로 한 줄로 보여도 됩니다). break-keep으로
+         "조율"처럼 한 단어가 중간에서 잘리지 않고 반드시 공백 위치("기억의"
+         다음)에서만 줄이 바뀌게 합니다(실제로 "조"/"율"로 쪼개졌던 문제). */}
       <Tooltip label="데이터관리" align="start" focusable>
-        <span className="text-center text-xs font-medium text-[var(--text-sub)] sm:text-sm sm:whitespace-nowrap">
+        <span className="text-center text-xs font-medium break-keep text-[var(--text-sub)] sm:text-sm sm:whitespace-nowrap">
           기억의 조율
         </span>
       </Tooltip>

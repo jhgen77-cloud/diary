@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import Modal from "@/components/Modal";
+import Tooltip from "@/components/Tooltip";
 import {
   addImageIcon,
   removeSelectionIcon,
@@ -31,10 +32,7 @@ interface ImageAttachModalProps {
 }
 
 const toolButtonClass =
-  "group relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--hover)] active:scale-90 disabled:pointer-events-none disabled:opacity-30 sm:h-9 sm:w-9";
-
-const tooltipClass =
-  "pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 text-[0.65rem] whitespace-nowrap text-[var(--text)] opacity-0 transition-opacity group-hover:opacity-100";
+  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-[var(--hover)] active:scale-90 disabled:pointer-events-none disabled:opacity-30 sm:h-9 sm:w-9";
 
 export default function ImageAttachModal({
   onClose,
@@ -97,74 +95,83 @@ export default function ImageAttachModal({
           </div>
         )}
         <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-          <button
-            type="button"
-            onClick={handleAddImageClick}
-            disabled={isFull}
-            aria-label="이미지 추가"
-            className={toolButtonClass}
-          >
-            <span className="relative aspect-square h-4 w-4 sm:h-5 sm:w-5">
-              <Image
-                src={addImageIcon}
-                alt="이미지 추가"
-                fill
-                className="object-contain"
-              />
-            </span>
-            <span className={tooltipClass}>이미지 추가</span>
-          </button>
-          <button
-            type="button"
-            onClick={onRemoveSelected}
-            disabled={!selectedImage}
-            aria-label="선택 해제"
-            className={toolButtonClass}
-          >
-            <span className="relative aspect-square h-4 w-4 sm:h-5 sm:w-5">
-              <Image
-                src={removeSelectionIcon}
-                alt="선택 해제"
-                fill
-                className="object-contain"
-              />
-            </span>
-            <span className={tooltipClass}>선택 해제</span>
-          </button>
-          <button
-            type="button"
-            onClick={onZoomIn}
-            disabled={!selectedImage || selectedImage.zoomLevel >= MAX_ZOOM}
-            aria-label="확대"
-            className={toolButtonClass}
-          >
-            <span className="relative aspect-square h-4 w-4 sm:h-5 sm:w-5">
-              <Image
-                src={zoomInIcon}
-                alt="확대"
-                fill
-                className="object-contain"
-              />
-            </span>
-            <span className={tooltipClass}>확대</span>
-          </button>
-          <button
-            type="button"
-            onClick={onZoomOut}
-            disabled={!selectedImage || selectedImage.zoomLevel <= MIN_ZOOM}
-            aria-label="축소"
-            className={toolButtonClass}
-          >
-            <span className="relative aspect-square h-4 w-4 sm:h-5 sm:w-5">
-              <Image
-                src={zoomOutIcon}
-                alt="축소"
-                fill
-                className="object-contain"
-              />
-            </span>
-            <span className={tooltipClass}>축소</span>
-          </button>
+          {/* 아이콘만 있고 곁에 글자 라벨이 없어 툴팁이 유일한 설명 수단이라
+             tapToReveal을 켭니다 — 터치 기기에서는 첫 탭에 툴팁만 뜨고,
+             그다음 탭에 실제 동작이 일어납니다(실제로 지적받은 문제 보완).
+             align="start": 툴바가 모달 왼쪽 가장자리에 가까워, 기본값(오른쪽
+             정렬)이면 첫 아이콘의 툴팁이 모달 밖 왼쪽으로 넘칠 수 있습니다. */}
+          <Tooltip label="이미지 추가" align="start" tapToReveal>
+            <button
+              type="button"
+              onClick={handleAddImageClick}
+              disabled={isFull}
+              aria-label="이미지 추가"
+              className={toolButtonClass}
+            >
+              <span className="relative aspect-square h-4 w-4 sm:h-5 sm:w-5">
+                <Image
+                  src={addImageIcon}
+                  alt="이미지 추가"
+                  fill
+                  className="object-contain"
+                />
+              </span>
+            </button>
+          </Tooltip>
+          <Tooltip label="선택 해제" align="start" tapToReveal>
+            <button
+              type="button"
+              onClick={onRemoveSelected}
+              disabled={!selectedImage}
+              aria-label="선택 해제"
+              className={toolButtonClass}
+            >
+              <span className="relative aspect-square h-4 w-4 sm:h-5 sm:w-5">
+                <Image
+                  src={removeSelectionIcon}
+                  alt="선택 해제"
+                  fill
+                  className="object-contain"
+                />
+              </span>
+            </button>
+          </Tooltip>
+          <Tooltip label="확대" align="start" tapToReveal>
+            <button
+              type="button"
+              onClick={onZoomIn}
+              disabled={!selectedImage || selectedImage.zoomLevel >= MAX_ZOOM}
+              aria-label="확대"
+              className={toolButtonClass}
+            >
+              <span className="relative aspect-square h-4 w-4 sm:h-5 sm:w-5">
+                <Image
+                  src={zoomInIcon}
+                  alt="확대"
+                  fill
+                  className="object-contain"
+                />
+              </span>
+            </button>
+          </Tooltip>
+          <Tooltip label="축소" align="start" tapToReveal>
+            <button
+              type="button"
+              onClick={onZoomOut}
+              disabled={!selectedImage || selectedImage.zoomLevel <= MIN_ZOOM}
+              aria-label="축소"
+              className={toolButtonClass}
+            >
+              <span className="relative aspect-square h-4 w-4 sm:h-5 sm:w-5">
+                <Image
+                  src={zoomOutIcon}
+                  alt="축소"
+                  fill
+                  className="object-contain"
+                />
+              </span>
+            </button>
+          </Tooltip>
           <span className="ml-1 text-[0.65rem] text-[var(--text-sub)] sm:text-xs">
             {images.length}/{MAX_IMAGES}
           </span>
