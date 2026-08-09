@@ -26,6 +26,20 @@ import warningSignIcon from "@/images/warning-sign.png";
 import questionMarkIcon from "@/images/question-mark.png";
 import letterIIcon from "@/images/letter-i.png";
 import writing1Icon from "@/images/writing1.png";
+import securitySaveIcon from "@/images/security-save.png";
+
+// DiaryWriteToolbar 전용 — 위 원본들과 그림 자체는 같지만, 캔버스 안에
+// 여백이 제각각이라(같은 박스에 넣어도 서로 다른 크기로 보임 — 실제로
+// 지적받은 문제) 그림 영역만 남기고 균일한 여백(4%)으로 다시 잘라낸
+// 파일입니다(scripts로 생성, images/toolbar/ 참고). 다른 화면(달력 선택,
+// 이미지 첨부 등)은 원본을 그대로 쓰고 이 툴바만 이 변형을 씁니다.
+import toolbarSaveIcon from "@/images/toolbar/save.png";
+import toolbarSaveSavedIcon from "@/images/toolbar/save-saved.png";
+import toolbarSecuritySaveIcon from "@/images/toolbar/security-save.png";
+import toolbarCalendarIcon from "@/images/toolbar/calendar.png";
+import toolbarImageAttachmentIcon from "@/images/toolbar/image-attachment.png";
+import toolbarImageAttachmentSavedIcon from "@/images/toolbar/image-attachment-saved.png";
+import toolbarWasteBasketIcon from "@/images/toolbar/waste-basket.png";
 
 export const MOOD_ICONS = {
   angry: angryIcon,
@@ -78,6 +92,14 @@ export {
   questionMarkIcon,
   letterIIcon,
   writing1Icon,
+  securitySaveIcon,
+  toolbarSaveIcon,
+  toolbarSaveSavedIcon,
+  toolbarSecuritySaveIcon,
+  toolbarCalendarIcon,
+  toolbarImageAttachmentIcon,
+  toolbarImageAttachmentSavedIcon,
+  toolbarWasteBasketIcon,
 };
 
 export type MoodKey = keyof typeof MOOD_ICONS;

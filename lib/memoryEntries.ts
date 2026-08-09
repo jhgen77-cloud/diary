@@ -197,10 +197,16 @@ async function encodeEntryFields(
  *
  * 첨부 이미지는 Storage 폴더 이름으로 이 행의 id(자동 증가값)를 써야 해서,
  * 행을 먼저 만들고 그 id로 이미지를 올린 뒤 image 컬럼만 다시 갱신하는
- * 순서로 진행합니다. */
-export async function insertMemoryEntry(entry: DiaryEntry): Promise<boolean> {
+ * 순서로 진행합니다.
+ *
+ * encrypt: 이 글 하나를 암호화해서 저장할지 — DiaryWriteToolbar의 "보안 저장"
+ * 아이콘으로 글마다 따로 고릅니다(전체를 일괄로 암호화하지 않음). true인데
+ * 이번 세션에 "일기 암호"가 아직 unlock 안 돼 있으면(getUnlockedKey()가 null)
+ * 평문으로 저장됩니다 — 호출부(DiaryWriteForm)가 저장 전에 미리 막아야
+ * 합니다(암호화 의도인데 조용히 평문으로 새는 일이 없도록). */
+export async function insertMemoryEntry(entry: DiaryEntry, encrypt: boolean): Promise<boolean> {
   const supabase = createClient();
-  const key = getUnlockedKey();
+  const key = encrypt ? getUnlockedKey() : null;
   const {
     title,
     text,
@@ -280,8 +286,18 @@ export async function insertMemoryEntry(entry: DiaryEntry): Promise<boolean> {
  * 첨부 이미지는 이 글의 Storage 폴더를 통째로 비운 뒤 현재 첨부된 이미지를
  * 다시 올립니다 — 어떤 이미지가 빠졌는지 하나하나 비교하는 대신, 매번 비우고
  * 다시 채우는 편이 더 단순하고 이전 파일이 고아로 남는 일도 없습니다(최대
- * 5장이라 매번 다시 올려도 부담이 크지 않습니다). */
-export async function updateMemoryEntry(entryId: string, entry: DiaryEntry): Promise<boolean> {
+ * 5장이라 매번 다시 올려도 부담이 크지 않습니다).
+ *
+ * encrypt: insertMemoryEntry와 같은 의미 — 이 글을 이번 저장에 암호화할지를
+ * 글마다 따로 고릅니다. 원래 암호화되어 있던 글을 encrypt=false로 다시
+ * 저장하면 평문으로, 원래 평문이던 글을 encrypt=true로 저장하면 암호문으로
+ * 바뀝니다(둘 다 자연스럽게 동작 — encodeEntryFields가 매번 이 인자만 보고
+ * 새로 인코딩하기 때문). */
+export async function updateMemoryEntry(
+  entryId: string,
+  entry: DiaryEntry,
+  encrypt: boolean
+): Promise<boolean> {
   if (!isRemoteEntryId(entryId)) return false;
   const numericId = Number(entryId.slice(REMOTE_ID_PREFIX.length));
   if (!Number.isFinite(numericId)) return false;
@@ -315,7 +331,7 @@ export async function updateMemoryEntry(entryId: string, entry: DiaryEntry): Pro
   }
   if (!existing) return false;
 
-  const key = getUnlockedKey();
+  const key = encrypt ? getUnlockedKey() : null;
   const {
     title,
     text,

@@ -98,7 +98,7 @@ export default function Tooltip({
       {children}
       <span
         role="tooltip"
-        className={`pointer-events-none absolute -top-2 z-20 -translate-y-full text-xs whitespace-nowrap text-[var(--text)] opacity-0 transition-all duration-150 group-hover/tooltip:scale-100 group-hover/tooltip:opacity-100 group-focus-visible/tooltip:scale-100 group-focus-visible/tooltip:opacity-100 group-has-[:focus-visible]/tooltip:scale-100 group-has-[:focus-visible]/tooltip:opacity-100 ${
+        className={`pointer-events-none absolute top-0 z-20 -translate-y-full text-xs whitespace-nowrap text-[var(--text)] opacity-0 transition-all duration-150 group-hover/tooltip:scale-100 group-hover/tooltip:opacity-100 group-focus-visible/tooltip:scale-100 group-focus-visible/tooltip:opacity-100 group-has-[:focus-visible]/tooltip:scale-100 group-has-[:focus-visible]/tooltip:opacity-100 ${
           revealed ? "scale-100 opacity-100" : "scale-95"
         } ${align === "start" ? "left-0" : "right-0"}`}
       >

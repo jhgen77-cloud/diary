@@ -82,13 +82,17 @@ export default function DiaryWriteForm() {
   // 환경 설정(SettingsManager)에서 고른 값 — "시간을 붙잡다"에서만 실제로
   // 적용됩니다(요구사항). 제목란은 폰트명/폰트 색상만, 본문란은 다섯 항목 모두.
   const envSettings = useEnvironmentSettings();
-  // "일기 암호"가 설정은 됐는데 이번 세션에 아직 안 풀려 있으면(암호 입력
-  // 전) 저장을 막습니다 — 막지 않으면 insertMemoryEntry/updateMemoryEntry가
-  // key 없이 조용히 평문으로 저장해버려, 사용자가 "당연히 암호화됐겠지"라고
+  // "이 글을 암호화할지"는 글마다 툴바의 "암호화" 아이콘으로 따로 고릅니다
+  // (전체 일괄 적용 아님) — encryptEntry가 그 의사, 아래 useEffect에서 기존
+  // 글을 불러오면 그 글의 실제 암호화 여부로 맞춥니다. encryptEntry가 켜져
+  // 있는데 "일기 암호"가 이번 세션에 아직 안 풀려 있으면(암호 입력 전)
+  // 저장을 막습니다 — 막지 않으면 insertMemoryEntry/updateMemoryEntry가 key
+  // 없이 조용히 평문으로 저장해버려, 사용자가 "당연히 암호화됐겠지"라고
   // 착각한 채 평문 글이 쌓이는 문제가 생길 수 있습니다.
   const { isSetUp: encryptionSetUp } = useEncryptionSetupStatus();
   const encryptionKey = useUnlockedKey();
-  const encryptionLocked = encryptionSetUp && !encryptionKey;
+  const [encryptEntry, setEncryptEntry] = useState(false);
+  const encryptionLocked = encryptEntry && !encryptionKey;
 
   // 하루에 일기는 하나만 쓸 수 있습니다 — 저장 시 이 목록(로컬 저장 글 +
   // Supabase에 이미 있는 글)에서 같은 날짜를 가진 다른 글이 있는지 확인합니다
@@ -186,6 +190,10 @@ export default function DiaryWriteForm() {
     setTitle(existingEntry.title);
     setContent(existingEntry.content);
     setEntryId(existingEntry.id);
+    // 이미 암호화되어 저장된 글을 다시 열면 "암호화" 아이콘이 켜진 채로
+    // 보여야 자연스럽습니다 — 그대로 다시 저장하면 계속 암호화 상태가
+    // 유지되고, 여기서 사용자가 직접 꺼서 저장하면 평문으로 넘어갑니다.
+    setEncryptEntry(existingEntry.encrypted ?? false);
     createdAtRef.current = existingEntry.createdAt;
     setSaved(true);
     setBaseline({
@@ -289,6 +297,7 @@ export default function DiaryWriteForm() {
     });
     setSelectedImageId(null);
     setEntryId(crypto.randomUUID());
+    setEncryptEntry(false);
     setBaseline(defaults);
     createdAtRef.current = null;
     hasLoadedEditRef.current = null;
@@ -350,6 +359,14 @@ export default function DiaryWriteForm() {
     if (saved) setSaved(false);
   }
 
+  function handleToggleEncrypt() {
+    // 여기서는 "이 글을 암호화하고 싶다"는 의사만 토글합니다 — 실제로 암호가
+    // 설정/unlock돼 있는지는 저장을 누르는 시점에 handleSaveClick이 확인해
+    // 필요하면 안내창을 띄웁니다(그래야 암호를 설정하러 갔다 돌아와도 이
+    // 토글이 켜진 채로 유지됩니다).
+    setEncryptEntry((prev) => !prev);
+  }
+
   async function handleSaveClick() {
     // 버튼은 saveDisabled일 때 pointer-events-none으로 막아두지만, 방어적으로
     // 한 번 더 확인합니다(entryId/전체 목록이 아직 준비 전이면 저장하지 않음).
@@ -382,7 +399,7 @@ export default function DiaryWriteForm() {
     // 행으로 추가합니다. 실패해도(네트워크 오류 등) 이미 반영된 로컬 저장은
     // 그대로 둡니다.
     if (isRemoteEntryId(entryId)) {
-      void updateMemoryEntry(entryId, entry);
+      void updateMemoryEntry(entryId, entry, encryptEntry);
     } else {
       // 처음 Supabase에 추가하는 경우 — 추가에 성공하면 이 글의 entryId를
       // 방금 발급된 원격 id("mem-<id>")로 갱신합니다. 이걸 안 하면 entryId가
@@ -399,7 +416,7 @@ export default function DiaryWriteForm() {
       // 착각해 저장할 때마다 insertMemoryEntry를 또 호출하고, Supabase에
       // 같은 글이 계속 중복으로 쌓이는 문제가 있었습니다(실제로 겪은 문제).
       const insertedLocalId = entry.id;
-      insertMemoryEntry(entry).then((ok) => {
+      insertMemoryEntry(entry, encryptEntry).then((ok) => {
         if (!ok) return;
         const remoteId = getSyncedRemoteId(insertedLocalId);
         if (remoteId) {
@@ -416,6 +433,32 @@ export default function DiaryWriteForm() {
       });
     }
   }
+
+  // Ctrl+S(맥은 Cmd+S)로도 저장할 수 있게 합니다(PC 웹 브라우저용 요구사항).
+  // 브라우저 기본 동작(현재 페이지를 파일로 저장하는 대화상자)을 막아야
+  // 하므로 keydown에서 preventDefault를 반드시 호출합니다. 이 리스너는
+  // "시간을 붙잡다" 모달이 떠 있는 동안(이 컴포넌트가 마운트돼 있는 동안)만
+  // 살아있어, 다른 화면에서는 Ctrl+S가 평소처럼 동작합니다.
+  //
+  // handleSaveClick은 매 렌더마다 새로 만들어지는 함수라 그대로 의존성에
+  // 넣으면 렌더마다 리스너를 떼었다 다시 붙이게 됩니다(동작엔 문제없지만
+  // 불필요한 재구독) — ref에 최신 함수만 담아두고, 아래 keydown effect는
+  // 마운트 시 한 번만 리스너를 등록합니다.
+  const handleSaveClickRef = useRef(handleSaveClick);
+  useEffect(() => {
+    handleSaveClickRef.current = handleSaveClick;
+  });
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      const isSaveShortcut = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s";
+      if (!isSaveShortcut) return;
+      event.preventDefault();
+      handleSaveClickRef.current();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   function handleDeleteClick() {
     setDialog({ type: "delete-confirm" });
@@ -546,6 +589,8 @@ export default function DiaryWriteForm() {
             saved={saved}
             hasAttachment={hasAttachment}
             saveDisabled={saveDisabled}
+            encryptOnSave={encryptEntry}
+            onToggleEncrypt={handleToggleEncrypt}
           />
           <div className="flex shrink-0 flex-col divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)]">
             <DiaryDateField value={date} onChange={setDate} />
@@ -642,7 +687,11 @@ export default function DiaryWriteForm() {
       {dialog.type === "encryption-locked" && (
         <NoticeDialog
           icon={warningSignIcon}
-          message={"일기 암호가 아직 잠겨있습니다.\n환경설정에서 암호를 입력한 뒤 다시 저장해주세요."}
+          message={
+            encryptionSetUp
+              ? "일기 암호가 아직 잠겨있습니다.\n환경설정에서 암호를 입력한 뒤 다시 저장해주세요."
+              : "아직 일기 암호가 설정되지 않았습니다.\n환경설정에서 먼저 암호를 설정한 뒤 다시 저장해주세요."
+          }
           confirmLabel="환경설정으로"
           onConfirm={() => router.push("/settings")}
           cancelLabel="취소"

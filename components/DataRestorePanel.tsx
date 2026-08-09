@@ -23,6 +23,7 @@ import {
   confirmSyncedRemoteId,
 } from "@/lib/memoryEntries";
 import type { DiaryEntry } from "@/lib/mockDiaryEntries";
+import { useUnlockedKey } from "@/lib/diaryEncryptionKey";
 
 interface ImportOptionItem {
   key: ImportOption;
@@ -59,6 +60,12 @@ export default function DataRestorePanel() {
   // useMemoryEntriesFull로 본문/첨부까지 포함해 받아옵니다.
   const { entries: remoteEntries } = useMemoryEntriesFull(savedEntries);
   const entries = [...savedEntries, ...remoteEntries];
+  // 가져온 글은 백업 파일에서 그대로 읽은 평문입니다. 글마다 따로 물어보기엔
+  // 한 번에 여러 개를 가져오는 일괄 작업이라, 이번 세션에 "일기 암호"가
+  // unlock돼 있으면 가져오는 글도 함께 암호화하고, 아니면(암호 미설정이든
+  // 잠겨있든) 평문 그대로 저장합니다 — 암호 입력을 강제해 가져오기 자체를
+  // 막지는 않습니다.
+  const encryptionKey = useUnlockedKey();
   const [option, setOption] = useState<ImportOption>("skip");
   const [dialog, setDialog] = useState<DialogState>({ type: "none" });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -94,7 +101,7 @@ export default function DataRestorePanel() {
       await Promise.all(
         touched.map(async (entry: DiaryEntry) => {
           const remoteId = isRemoteEntryId(entry.id) ? entry.id : getSyncedRemoteId(entry.id);
-          if (remoteId && (await updateMemoryEntry(remoteId, entry))) return;
+          if (remoteId && (await updateMemoryEntry(remoteId, entry, !!encryptionKey))) return;
           // remoteId가 없었거나(로컬에서만 있던 글), 있었지만 그 행이 이미
           // Supabase에서 지워진 경우("내보내며 삭제" 옵션으로 지운 백업을
           // 다시 가져오는 경우 — 백업 파일의 id가 옛 원격 id 그대로 남아있어
@@ -102,7 +109,7 @@ export default function DataRestorePanel() {
           // 새로 발급된 원격 id로 맞춰둬야, 이 글을 다시 열어 고칠 때
           // insertMemoryEntry가 또 호출되어 중복으로 쌓이는 일이 없습니다
           // (DiaryWriteForm의 첫 저장 흐름과 동일한 이유).
-          const inserted = await insertMemoryEntry(entry);
+          const inserted = await insertMemoryEntry(entry, !!encryptionKey);
           if (!inserted) return;
           const newRemoteId = getSyncedRemoteId(entry.id);
           if (newRemoteId && newRemoteId !== entry.id) {
