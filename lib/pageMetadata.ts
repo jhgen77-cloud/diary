@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const SITE_NAME = "기억";
-export const DEFAULT_DESCRIPTION = "그날의 기억을 붙잡고, 다시 걸어보는 다이어리.";
+const DEFAULT_DESCRIPTION = "그날의 기억을 붙잡고, 다시 걸어보는 다이어리.";
 
 // 파비콘으로 쓰는 로고(app/icon.png)를 오픈그래프 이미지로도 재사용합니다 —
 // 정사각형이라 링크 미리보기용으로는 이상적인 비율(1200x630 등 가로형)은

@@ -16,7 +16,7 @@ export interface DateValue {
   day: number;
 }
 
-export function dateValueToString({ year, month, day }: DateValue) {
+function dateValueToString({ year, month, day }: DateValue) {
   const mm = String(month).padStart(2, "0");
   const dd = String(day).padStart(2, "0");
   return `${year}-${mm}-${dd}`;

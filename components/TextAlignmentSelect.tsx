@@ -1,7 +1,5 @@
 import type { TextAlignKey } from "@/lib/environmentSettings";
 
-export type { TextAlignKey };
-
 interface AlignOption {
   key: TextAlignKey;
   label: string;

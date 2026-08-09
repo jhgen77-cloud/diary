@@ -135,7 +135,7 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 /** 선택한 백업 파일(.zip 또는 .xml)을 읽어 DiaryEntry 목록으로 되돌립니다.
  * .zip은 diary.xml과 images/ 폴더를 함께 담고 있어 이미지까지 복원되지만, .xml
  * 단독 파일은 이미지 없이 텍스트만 복원됩니다. */
-export async function readImportFile(file: File): Promise<DiaryEntry[]> {
+async function readImportFile(file: File): Promise<DiaryEntry[]> {
   const isZip = file.name.toLowerCase().endsWith(".zip");
   if (!isZip) {
     const xmlText = await file.text();

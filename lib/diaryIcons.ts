@@ -12,12 +12,9 @@ import rainIcon from "@/images/weather/rain.png";
 import snowIcon from "@/images/weather/snow.png";
 import thunderstormIcon from "@/images/weather/thunderstorm.png";
 
-import saveIcon from "@/images/save.png";
-import saveSavedIcon from "@/images/save-saved.png";
 import wasteBasketIcon from "@/images/waste-basket.png";
 import calendarIcon from "@/images/calendar.png";
 import imageAttachmentIcon from "@/images/image-attachment.png";
-import imageAttachmentSavedIcon from "@/images/image-attachment-saved.png";
 import addImageIcon from "@/images/add-image.png";
 import removeSelectionIcon from "@/images/remove-selection.png";
 import zoomInIcon from "@/images/zoom-in.png";
@@ -26,7 +23,6 @@ import warningSignIcon from "@/images/warning-sign.png";
 import questionMarkIcon from "@/images/question-mark.png";
 import letterIIcon from "@/images/letter-i.png";
 import writing1Icon from "@/images/writing1.png";
-import securitySaveIcon from "@/images/security-save.png";
 
 // DiaryWriteToolbar 전용 — 위 원본들과 그림 자체는 같지만, 캔버스 안에
 // 여백이 제각각이라(같은 박스에 넣어도 서로 다른 크기로 보임 — 실제로
@@ -79,20 +75,16 @@ export const WEATHER_LABELS = {
 
 export {
   imageAttachmentIcon,
-  imageAttachmentSavedIcon,
   addImageIcon,
   removeSelectionIcon,
   zoomInIcon,
   zoomOutIcon,
-  saveIcon,
-  saveSavedIcon,
   wasteBasketIcon,
   calendarIcon,
   warningSignIcon,
   questionMarkIcon,
   letterIIcon,
   writing1Icon,
-  securitySaveIcon,
   toolbarSaveIcon,
   toolbarSaveSavedIcon,
   toolbarSecuritySaveIcon,

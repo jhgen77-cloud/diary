@@ -48,16 +48,8 @@ export function formatLocalDate(date: Date) {
 
 // 임시 목업 일기는 모두 제거했습니다 — 목록/달력에는 사용자가 실제로 저장한
 // 글만 표시됩니다 (@/lib/savedDiaryEntries 참고).
-const RAW_ENTRIES: DiaryEntry[] = [];
-
 export function sortDiaryEntriesByDateDesc(entries: DiaryEntry[]) {
   return [...entries].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-}
-
-export const mockDiaryEntries = sortDiaryEntriesByDateDesc(RAW_ENTRIES);
-
-export function getDiaryEntryById(id: string) {
-  return mockDiaryEntries.find((entry) => entry.id === id);
 }
 
 /** 이 글을 아직 수정할 수 있는지 — 작성한 날짜(entry.date)가 오늘이 아니면

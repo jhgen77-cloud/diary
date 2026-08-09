@@ -2,14 +2,14 @@
  * "기억 사용자 도움말(1).docx" 내용을 화면 표시용으로 정리했습니다 — 문서를
  * 고치면 이 파일만 함께 갱신하면 됩니다. */
 
-export interface HelpItem {
+interface HelpItem {
   title: string;
   description: string;
   /** 항목 설명 아래에 한 단계 더 들여써 보여줄 하위 목록(선택). */
   subItems?: string[];
 }
 
-export interface HelpLink {
+interface HelpLink {
   label: string;
   href: string;
 }

@@ -390,7 +390,7 @@ export async function updateMemoryEntry(
 /** Supabase에 저장된 글("mem-<bigint>" id)을 삭제합니다. Storage에 올려둔
  * 첨부 이미지도 함께 지워, 글은 지워졌는데 이미지 파일만 버킷에 고아로
  * 남는 일이 없게 합니다. */
-export async function deleteMemoryEntry(entryId: string): Promise<boolean> {
+async function deleteMemoryEntry(entryId: string): Promise<boolean> {
   if (!isRemoteEntryId(entryId)) return false;
   const numericId = Number(entryId.slice(REMOTE_ID_PREFIX.length));
   if (!Number.isFinite(numericId)) return false;
@@ -600,7 +600,7 @@ export async function migrateAllEncryptedEntriesToPlaintext(
  * has_attachment만 가져오고 image는 select하지 않습니다 — 예전엔 image까지
  * 통째로 내려받아 목록/달력을 열 때마다 화면에 안 쓰는 이미지 데이터를
  * 불필요하게 전부 로드하고 있었습니다(실제로 겪은 문제). */
-export async function fetchMemoryEntries(): Promise<DiaryEntry[]> {
+async function fetchMemoryEntries(): Promise<DiaryEntry[]> {
   const supabase = createClient();
   const {
     data: { user },
@@ -636,7 +636,7 @@ export async function fetchMemoryEntries(): Promise<DiaryEntry[]> {
  * 가져오면 Supabase의 원래 글까지 빈 본문으로 덮어써지는 심각한 데이터 유실
  * 문제가 있었습니다(실제로 겪은 문제 — Supabase text 컬럼이 비어있는 것으로
  * 확인함). */
-export async function fetchMemoryEntriesFull(): Promise<DiaryEntry[]> {
+async function fetchMemoryEntriesFull(): Promise<DiaryEntry[]> {
   const supabase = createClient();
   const {
     data: { user },
@@ -675,7 +675,7 @@ export function suppressDeletedEntries(remoteEntries: DiaryEntry[]): DiaryEntry[
  * 시작하지 않으면(로컬 글이면) 곧바로 null을 반환합니다. image 컬럼에는
  * Storage 공개 URL이 들어있어(예전의 base64 데이터 대신), 다른 로컬 글과
  * 마찬가지로 그대로 <img src>에 쓸 수 있습니다. */
-export async function fetchMemoryEntryById(entryId: string): Promise<DiaryEntry | null> {
+async function fetchMemoryEntryById(entryId: string): Promise<DiaryEntry | null> {
   if (!entryId.startsWith(REMOTE_ID_PREFIX)) return null;
   const numericId = Number(entryId.slice(REMOTE_ID_PREFIX.length));
   if (!Number.isFinite(numericId)) return null;
