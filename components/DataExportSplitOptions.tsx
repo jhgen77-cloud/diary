@@ -65,7 +65,7 @@ export default function DataExportSplitOptions({
   return (
     <div
       ref={containerRef}
-      className={`relative inline-block transition-opacity ${
+      className={`relative w-full min-w-0 transition-opacity sm:w-52 ${
         disabled ? "pointer-events-none opacity-40" : ""
       }`}
     >
@@ -75,7 +75,7 @@ export default function DataExportSplitOptions({
         aria-haspopup="true"
         aria-expanded={open}
         disabled={disabled}
-        className="flex w-44 items-center justify-between gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-left transition-colors hover:bg-[var(--hover)] sm:w-52"
+        className="flex w-full items-center justify-between gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-left transition-colors hover:bg-[var(--hover)] sm:w-52"
       >
         <span className="truncate text-xs text-[var(--text-sub)] sm:text-sm">
           {SPLIT_LABELS[value]}
@@ -91,7 +91,7 @@ export default function DataExportSplitOptions({
       {open && (
         <div
           aria-label="파일 생성 옵션"
-          className="absolute top-full left-0 z-10 mt-1 flex w-44 flex-col rounded-xl border border-[var(--border)] bg-[var(--card)] p-1 sm:w-52"
+          className="absolute top-full left-0 z-10 mt-1 flex w-full flex-col rounded-xl border border-[var(--border)] bg-[var(--card)] p-1 sm:w-52"
         >
           {order.map((key) => (
             <DataOptionRadio

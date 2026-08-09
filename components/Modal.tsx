@@ -166,7 +166,7 @@ export default function Modal({
 
   const dimensionClass = isMinimized
     ? SIZE_CLASSES[size]
-    : `${heightVh ? "" : tall ? "h-[92vh]" : "max-h-[80vh]"} ${SIZE_CLASSES[size]}`;
+    : `${heightVh ? "" : tall ? "h-[92dvh]" : "max-h-[80dvh]"} ${SIZE_CLASSES[size]}`;
 
   if (!mounted) return null;
 
