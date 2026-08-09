@@ -31,12 +31,19 @@ export default function DataExportDateField({
   const isPickerVisible = isPickerOpen && !disabled;
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-      <span className="shrink-0 rounded-lg border border-[var(--border)] px-3 py-1 text-center text-xs font-medium whitespace-nowrap text-[var(--text-sub)] sm:px-5 sm:py-1.5 sm:text-sm">
+    <div className="flex shrink-0 flex-col items-stretch gap-1.5 sm:flex-row sm:items-center">
+      {/* 좁은 화면에서는 라벨과 날짜 박스가 한 줄에 억지로 붙어 있을 공간이
+         부족해(라벨 폭 + 날짜 박스 최소폭이 실제 남는 공간보다 넓음)
+         "옆에 붙었다가 넘치는" 상태와 "글자 단위로 쪼개짐" 상태를 오갔던
+         문제가 있었습니다(실제로 겪은 문제) — 아예 라벨을 위, 날짜 박스를
+         아래에 두는 세로 배치로 고정해 좁은 화면에서도 항상 안정적으로
+         들어오게 합니다. sm 이상(PC 등 폭이 넉넉한 화면)에서는 기존처럼
+         한 줄로 나란히 보여줍니다. */}
+      <span className="w-fit shrink-0 rounded-lg border border-[var(--border)] px-3 py-1 text-center text-xs font-medium whitespace-nowrap text-[var(--text-sub)] sm:px-5 sm:py-1.5 sm:text-sm">
         {label}
       </span>
       <div
-        className={`relative flex min-w-0 flex-1 basis-[7.5rem] items-center justify-between gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] py-0.5 pr-1.5 pl-3.5 transition-opacity sm:min-w-[13rem] sm:flex-none sm:py-1 ${
+        className={`relative flex min-w-0 items-center justify-between gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] py-0.5 pr-1.5 pl-3.5 transition-opacity sm:min-w-[13rem] sm:py-1 ${
           disabled ? "opacity-40" : ""
         }`}
       >

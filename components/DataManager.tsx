@@ -20,7 +20,10 @@ export default function DataManager() {
         <DataSidebar />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
           <DataTabNav active={tab} onChange={setTab} />
-          <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto">
+          {/* overflow-x-hidden 명시: overflow-y-auto만 있으면 브라우저가 좌우도
+             auto로 취급해 세로뿐 아니라 옆으로도 스크롤/드래그가 되어버립니다
+             (SettingsManager에서 같은 문제를 겪고 고친 것과 동일한 원인). */}
+          <div className="scrollbar-hide min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
             {/* 탭을 옮겨도 각 패널의 상태(선택된 파일 형식, 파일 생성 옵션 등)가
                유지되도록 언마운트하지 않고, 비활성 탭은 display:none으로만 숨깁니다.
                모달을 닫으면(DataManager 자체가 언마운트) 그때 비로소 초기화됩니다. */}

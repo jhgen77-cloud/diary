@@ -61,7 +61,12 @@ export default function SettingsManager() {
         {/* FontSettingsPanel도 사이드바와 같은 p-3 테두리 박스라 상단 텍스트
            높이가 자연스럽게 맞아, DataTabNav 때와 달리 별도 여백 보정이
            필요 없습니다. */}
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto">
+        {/* overflow-x-hidden을 명시하지 않으면, overflow-y-auto만 걸린 요소는
+           브라우저가 overflow-x도 auto로 취급해(스펙상 둘 중 하나가 visible이
+           아니면 나머지도 auto가 됨) 세로 스크롤은 몰라도 좌우로도 스크롤/드래그가
+           되어버려 화면이 옆으로 흔들리는 느낌을 줬습니다(실제로 겪은 문제).
+           세로만 스크롤되고 좌우는 완전히 고정되도록 명시적으로 막습니다. */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto">
           <FontSettingsPanel settings={draft} onChange={updateDraft} />
           <BackgroundSettingsPanel settings={draft} onChange={updateDraft} />
         </div>
