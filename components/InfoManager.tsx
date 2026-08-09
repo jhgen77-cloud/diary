@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation";
 import InfoBanner from "@/components/InfoBanner";
 import InfoSidebar from "@/components/InfoSidebar";
 import InfoContent from "@/components/InfoContent";
+import InfoDeveloperCredit from "@/components/InfoDeveloperCredit";
 
 /** 정보 모달의 본문. DataManager와 같은 레이아웃(좌측 사이드바 + 본문 +
- * 하단 닫기 버튼)을 재사용합니다(요구사항). 사이드바("버전 정보"/"도움말")는
+ * 하단 닫기 버튼)을 재사용합니다(요구사항). 사이드바("프로그램 정보"/"도움말")는
  * InfoSidebar, 본문은 기존 InfoContent를 그대로 씁니다.
  *
  * InfoBanner(대표 이미지)는 모달 맨 위 전체 폭이 아니라, 사이드바 옆(본문
@@ -14,10 +15,12 @@ import InfoContent from "@/components/InfoContent";
  * 세로 공간을 나눠 갖게 되어 사이드바가 원래보다 작아 보이는 문제가
  * 있었습니다(실제로 지적받은 문제). 사이드바와 같은 줄(행)에 있어야
  * 사이드바 자체의 크기는 이미지와 무관하게 원래 그대로 유지됩니다. 이미지
- * 옆엔 앱 이름 "기억"을 나란히 둡니다(요구사항). InfoContent("준비
- * 중입니다")는 그 아래 남는 공간 안에서 items-center/justify-center로
- * 가운데 정렬해, 이미지 크기가 바뀌어도 텍스트 위치가 그 영향을 받지
- * 않게 합니다. */
+ * 옆엔 앱 이름 "기억"을 나란히 둡니다(요구사항). InfoContent(버전/소개/
+ * 개발자 정보)는 그 행 바로 아래(부모 flex-col의 gap-3)에 이어 붙여,
+ * "이미지 밑에" 배치해 달라는 요구사항대로 왼쪽 정렬로 자연스럽게
+ * 위치합니다(예전엔 자리표시자 한 줄이라 items-center/justify-center로
+ * 가운데 정렬했었는데, 실제 소개 문구가 여러 줄이 되면서 위쪽 정렬이 더
+ * 자연스러워 걷어냈습니다). */
 export default function InfoManager() {
   const router = useRouter();
 
@@ -36,9 +39,8 @@ export default function InfoManager() {
               기억
             </span>
           </div>
-          <div className="flex flex-1 items-center justify-center">
-            <InfoContent />
-          </div>
+          <InfoContent />
+          <InfoDeveloperCredit />
         </div>
       </div>
 

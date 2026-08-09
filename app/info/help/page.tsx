@@ -20,7 +20,7 @@ export const metadata: Metadata = buildPageMetadata(
 // 이 항상 안전하게 정보 모달로 돌아갑니다.
 export default function InfoHelpPage() {
   return (
-    <Modal title="도움말">
+    <Modal title="도움말" size="xl" tall>
       <HelpContent />
     </Modal>
   );

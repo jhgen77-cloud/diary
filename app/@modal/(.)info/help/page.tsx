@@ -11,7 +11,7 @@ import HelpContent from "@/components/HelpContent";
  * 정보 모달로 돌아갑니다. */
 export default function InfoHelpModal() {
   return (
-    <Modal title="도움말">
+    <Modal title="도움말" size="xl" tall>
       <HelpContent />
     </Modal>
   );
