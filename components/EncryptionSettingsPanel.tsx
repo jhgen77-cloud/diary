@@ -3,13 +3,17 @@
 import { useState, type FormEvent } from "react";
 import {
   changePassphrase,
+  deleteEncryptionSetup,
   lockEncryption,
   setUpEncryption,
   unlockEncryption,
   useEncryptionSetupStatus,
   useUnlockedKey,
 } from "@/lib/diaryEncryptionKey";
+import { migrateAllEncryptedEntriesToPlaintext } from "@/lib/memoryEntries";
 import Toast from "@/components/Toast";
+import NoticeDialog from "@/components/NoticeDialog";
+import { letterIIcon, questionMarkIcon } from "@/lib/diaryIcons";
 
 const inputClass =
   "h-8 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-2.5 text-xs text-[var(--text)] outline-none placeholder:text-[var(--placeholder)] focus:border-[var(--accent)] sm:h-9 sm:text-sm";
@@ -41,6 +45,10 @@ export default function EncryptionSettingsPanel() {
   const [oldPassphrase, setOldPassphrase] = useState("");
   const [newPassphrase, setNewPassphrase] = useState("");
   const [confirmNewPassphrase, setConfirmNewPassphrase] = useState("");
+
+  const [disableDialog, setDisableDialog] = useState<"none" | "confirm" | "done">("none");
+  const [disabling, setDisabling] = useState(false);
+  const [disabledCount, setDisabledCount] = useState(0);
 
   function resetSetupFields() {
     setPassphrase("");
@@ -103,6 +111,35 @@ export default function EncryptionSettingsPanel() {
     setNewPassphrase("");
     setConfirmNewPassphrase("");
     setShowChangeForm(false);
+  }
+
+  /** "암호화 해제" — 다른 앱(Apple 메모의 잠금 노트 해제 등)과 같은 순서로
+   * 진행합니다: 먼저 지금 unlock된 key로 암호화된 글을 전부 복호화해서
+   * 평문으로 다시 저장하고, 그게 전부 성공한 뒤에야 암호 설정(salt/verifier)
+   * 자체를 지웁니다. 순서를 지키는 이유는 lib/diaryEncryptionKey.ts의
+   * deleteEncryptionSetup 문서 참고 — 먼저 설정을 지우면 아직 암호문으로
+   * 남은 글은 영영 못 엽니다. */
+  async function handleDisableEncryption() {
+    if (!key || disabling) return;
+    setDisabling(true);
+    const migrateResult = await migrateAllEncryptedEntriesToPlaintext(key);
+    if (!migrateResult.ok) {
+      setDisabling(false);
+      setDisableDialog("none");
+      setError("암호화된 글을 평문으로 되돌리는 중 실패했습니다. 암호 설정은 그대로 두었으니 다시 시도해주세요.");
+      return;
+    }
+    const deleted = await deleteEncryptionSetup();
+    setDisabling(false);
+    if (!deleted) {
+      setError(
+        "글은 전부 평문으로 되돌렸지만, 암호 설정 삭제에는 실패했습니다. 다시 시도해주세요."
+      );
+      setDisableDialog("none");
+      return;
+    }
+    setDisabledCount(migrateResult.migratedCount);
+    setDisableDialog("done");
   }
 
   return (
@@ -170,6 +207,13 @@ export default function EncryptionSettingsPanel() {
               >
                 암호 변경
               </button>
+              <button
+                type="button"
+                onClick={() => setDisableDialog("confirm")}
+                className={actionButtonClass}
+              >
+                암호화 해제
+              </button>
             </div>
           </div>
           {showChangeForm && (
@@ -219,6 +263,34 @@ export default function EncryptionSettingsPanel() {
       )}
 
       {error && <Toast message={error} onDismiss={() => setError(null)} />}
+
+      {disableDialog === "confirm" && (
+        <NoticeDialog
+          icon={questionMarkIcon}
+          message={
+            disabling
+              ? "암호화된 글을 평문으로 되돌리는 중입니다…"
+              : "암호화된 글을 전부 평문으로 되돌려 저장한 뒤, 암호 설정을 삭제합니다.\n계속하시겠습니까?"
+          }
+          confirmLabel="예"
+          onConfirm={handleDisableEncryption}
+          cancelLabel="아니요"
+          onCancel={() => setDisableDialog("none")}
+          confirmFirst
+          wide
+        />
+      )}
+      {disableDialog === "done" && (
+        <NoticeDialog
+          icon={letterIIcon}
+          message={
+            disabledCount > 0
+              ? `일기 ${disabledCount}개를 평문으로 되돌리고, 암호 설정을 삭제했습니다.`
+              : "암호 설정을 삭제했습니다."
+          }
+          onConfirm={() => setDisableDialog("none")}
+        />
+      )}
     </div>
   );
 }

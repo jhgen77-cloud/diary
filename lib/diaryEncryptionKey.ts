@@ -230,3 +230,34 @@ export async function changePassphrase(
   notifyKey();
   return true;
 }
+
+/** "일기 암호" 설정 자체를 완전히 지웁니다 — diary_encryption_keys 행을
+ * 삭제하고, 세션 키/설정 캐시도 함께 초기화합니다("암호 미설정" 상태로
+ * 되돌아감). 이후 저장하는 글은 다시 평문으로 저장됩니다.
+ *
+ * ⚠️ 반드시 lib/memoryEntries.ts의 migrateAllEncryptedEntriesToPlaintext로
+ * 기존에 암호화된 글을 전부 평문으로 되돌려 저장한 "다음"에만 호출해야
+ * 합니다 — 순서를 바꿔 이 함수를 먼저 호출하면(salt를 지워버리면) 아직
+ * 암호문으로 남아있는 글은 같은 암호를 다시 입력해도 다른 키가 나와
+ * 영영 복호화할 수 없게 됩니다. 이 함수 자체는 그 순서를 강제하지
+ * 않으므로, 호출부(EncryptionSettingsPanel)가 반드시 마이그레이션 성공을
+ * 확인한 뒤에만 불러야 합니다. */
+export async function deleteEncryptionSetup(): Promise<boolean> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { error } = await supabase.from("diary_encryption_keys").delete().eq("user_id", user.id);
+  if (error) {
+    console.error("일기 암호 설정 삭제 실패", error);
+    return false;
+  }
+
+  encryptionRow = null;
+  notifyRow();
+  unlockedKey = null;
+  notifyKey();
+  return true;
+}

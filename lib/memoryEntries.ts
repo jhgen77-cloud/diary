@@ -8,7 +8,7 @@ import type { MoodKey, WeatherKey } from "@/lib/diaryIcons";
 import { REMOTE_ID_PREFIX, rowToEntry } from "@/lib/memoryEntriesShared";
 import { onUserIdChange, useCurrentUserId } from "@/lib/authUserId";
 import { getUnlockedKey, useUnlockedKey } from "@/lib/diaryEncryptionKey";
-import { encryptBlob, encryptText } from "@/lib/diaryEncryption";
+import { decryptBlob, decryptText, encryptBlob, encryptText } from "@/lib/diaryEncryption";
 import { decryptDiaryEntryForDisplay, revokeDecryptedImageUrls } from "@/lib/decryptDiaryEntry";
 
 type SupabaseClient = ReturnType<typeof createClient>;
@@ -491,6 +491,90 @@ export async function clearAllRemoteDiaryData(): Promise<boolean> {
   deletedRemoteIds.clear();
   allRemoteDataCleared = true;
   return true;
+}
+
+interface MigrateToPlaintextResult {
+  ok: boolean;
+  /** 실제로 평문으로 되돌린 글 개수. */
+  migratedCount: number;
+}
+
+/** "일기 암호"를 완전히 해제할 때(EncryptionSettingsPanel의 "암호화 해제")
+ * 쓰는 안전한 마이그레이션입니다. 다른 앱(예: Apple 메모의 잠금 노트 해제)과
+ * 같은 순서를 따릅니다 — key가 살아있는 동안 암호화된 글을 전부 복호화해서
+ * 평문으로 다시 저장한 뒤에야(성공을 확인한 뒤에야) 호출부가 diary_encryption_keys
+ * 행을 지웁니다. salt/verifier부터 먼저 지워버리면 그 순간부터 이 글들을 다시
+ * 복호화할 방법이 없어져(같은 암호를 넣어도 새 salt로는 다른 키가 나옴)
+ * 영구 유실이 되므로, 반드시 "복호화+재저장 → 성공 확인 → 그 다음 삭제" 순서를
+ * 지켜야 합니다.
+ *
+ * 하나라도 실패하면 그 즉시 중단하고 ok:false를 돌려줍니다 — 일부는 평문,
+ * 일부는 여전히 암호문인 애매한 상태로 마이그레이션을 "부분 성공"으로 끝내면
+ * 안 되기 때문입니다(호출부가 이 경우 삭제를 진행하지 않아, 다시 시도할 수
+ * 있습니다). */
+export async function migrateAllEncryptedEntriesToPlaintext(
+  key: CryptoKey
+): Promise<MigrateToPlaintextResult> {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, migratedCount: 0 };
+
+  const { data: rows, error } = await supabase
+    .from("memory_entries")
+    .select("id, title, text, image, title_iv, text_iv")
+    .eq("user_id", user.id)
+    .eq("encrypted", true);
+  if (error) {
+    console.error("암호화된 글 목록 조회 실패", error);
+    return { ok: false, migratedCount: 0 };
+  }
+  if (!rows || rows.length === 0) return { ok: true, migratedCount: 0 };
+
+  try {
+    for (const row of rows) {
+      const title = row.title_iv ? await decryptText(key, row.title, row.title_iv) : row.title;
+      const text =
+        row.text_iv && row.text ? await decryptText(key, row.text, row.text_iv) : (row.text ?? "");
+
+      // 첨부 이미지도 있으면 복호화한 뒤 같은 경로(폴더/파일명)에 평문으로
+      // 다시 업로드합니다(upsert라 같은 경로에 그대로 덮어써짐 — 별도로
+      // 먼저 지울 필요 없음).
+      let imageUrls: string[] | null = null;
+      if (Array.isArray(row.image) && row.image.length > 0) {
+        const folderKey = String(row.id);
+        const urls: string[] = [];
+        for (let index = 0; index < row.image.length; index += 1) {
+          const response = await fetch(row.image[index]);
+          const encryptedBlob = await response.blob();
+          const plainBlob = await decryptBlob(key, encryptedBlob, "image/jpeg");
+          const path = `${folderKey}/${index}.jpg`;
+          const { error: uploadError } = await supabase.storage
+            .from(DIARY_IMAGES_BUCKET)
+            .upload(path, plainBlob, { contentType: "image/jpeg", upsert: true });
+          if (uploadError) throw uploadError;
+          const { data: publicData } = supabase.storage
+            .from(DIARY_IMAGES_BUCKET)
+            .getPublicUrl(path);
+          urls.push(publicData.publicUrl);
+        }
+        imageUrls = urls;
+      }
+
+      const { error: updateError } = await supabase
+        .from("memory_entries")
+        .update({ title, text, image: imageUrls, encrypted: false, title_iv: null, text_iv: null })
+        .eq("id", row.id)
+        .eq("user_id", user.id);
+      if (updateError) throw updateError;
+    }
+  } catch (migrationError) {
+    console.error("암호화 해제(평문 전환) 실패", migrationError);
+    return { ok: false, migratedCount: 0 };
+  }
+
+  return { ok: true, migratedCount: rows.length };
 }
 
 /** 목록/달력에 쓸 글 전체를 최신순으로 불러옵니다. 본문(text)은 목록에
