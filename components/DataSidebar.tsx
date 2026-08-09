@@ -15,8 +15,14 @@ export default function DataSidebar() {
          (sm 이상은 폭이 넉넉해 원래대로 한 줄로 보여도 됩니다). break-keep으로
          "조율"처럼 한 단어가 중간에서 잘리지 않고 반드시 공백 위치("기억의"
          다음)에서만 줄이 바뀌게 합니다(실제로 "조"/"율"로 쪼개졌던 문제). */}
-      <Tooltip label="데이터관리" align="start" focusable>
-        <span className="text-center text-xs font-medium break-keep text-[var(--text-sub)] sm:text-sm sm:whitespace-nowrap">
+      {/* Tooltip의 기본 표시(inline-block)는 내용물(가장 넓은 줄인 "기억의")
+         너비로만 딱 맞게 줄어들어, text-center를 줘도 그 좁은 상자 안에서는
+         눈에 띄는 차이가 없었습니다(실제로 왼쪽으로 치우쳐 보이던 문제) —
+         Tooltip과 안쪽 span 모두 사이드바 전체 폭을 쓰는 블록으로 바꿔서,
+         "기억의"/"조율" 두 줄이 사이드바 폭 기준으로 확실히 가운데 정렬되게
+         합니다. */}
+      <Tooltip label="데이터관리" align="start" focusable className="block w-full">
+        <span className="block w-full text-center text-xs font-medium break-keep text-[var(--text-sub)] sm:text-sm sm:whitespace-nowrap">
           기억의 조율
         </span>
       </Tooltip>
