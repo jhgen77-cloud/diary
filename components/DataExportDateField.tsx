@@ -32,11 +32,11 @@ export default function DataExportDateField({
 
   return (
     <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-      <span className="shrink-0 rounded-lg border border-[var(--border)] px-4 py-1 text-center text-xs font-medium whitespace-nowrap text-[var(--text-sub)] sm:px-5 sm:py-1.5 sm:text-sm">
+      <span className="shrink-0 rounded-lg border border-[var(--border)] px-3 py-1 text-center text-xs font-medium whitespace-nowrap text-[var(--text-sub)] sm:px-5 sm:py-1.5 sm:text-sm">
         {label}
       </span>
       <div
-        className={`relative flex min-w-[10.5rem] items-center justify-between gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] py-0.5 pr-1.5 pl-3.5 transition-opacity sm:min-w-[13rem] sm:py-1 ${
+        className={`relative flex min-w-0 flex-1 basis-[7.5rem] items-center justify-between gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] py-0.5 pr-1.5 pl-3.5 transition-opacity sm:min-w-[13rem] sm:flex-none sm:py-1 ${
           disabled ? "opacity-40" : ""
         }`}
       >
