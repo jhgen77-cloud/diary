@@ -10,6 +10,7 @@ import { FONT_FAMILY_CSS } from "@/components/FontFamilySelect";
 import { formatDiaryDate, isDiaryEntryEditable } from "@/lib/mockDiaryEntries";
 import { useSavedDiaryEntry } from "@/lib/savedDiaryEntries";
 import { useRemoteMemoryEntry, deleteDiaryEntryEverywhere } from "@/lib/memoryEntries";
+import { useUnlockedKey } from "@/lib/diaryEncryptionKey";
 import {
   MOOD_ICONS,
   WEATHER_ICONS,
@@ -17,6 +18,7 @@ import {
   writing1Icon,
   questionMarkIcon,
   letterIIcon,
+  warningSignIcon,
 } from "@/lib/diaryIcons";
 
 interface DiaryEntryDetailProps {
@@ -41,6 +43,10 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
   );
   const entry = localEntry ?? remoteEntry;
   const [dialog, setDialog] = useState<DialogState>({ type: "none" });
+  // 암호화된 글인지와 무관하게 항상 구독합니다(훅은 조건부로 호출할 수
+  // 없음) — 아래에서 entry.encrypted와 함께 봐야만 "잠긴 암호화 글"인지
+  // 판단할 수 있습니다.
+  const encryptionKey = useUnlockedKey();
 
   function handleDeleteClick() {
     setDialog({ type: "delete-confirm" });
@@ -80,6 +86,31 @@ export default function DiaryEntryDetail({ id }: DiaryEntryDetailProps) {
         message="삭제되었습니다."
         onConfirm={() => router.back()}
       />
+    );
+  }
+
+  // 암호화된 글인데 이번 세션에 "일기 암호"를 아직 안 풀었으면, 작성자
+  // 본인이어도 내용을 복호화할 방법이 없습니다(lib/decryptDiaryEntry.ts가
+  // 이미 title을 "🔒 암호로 보호된 일기" 자리표시자로 바꿔둔 상태) —
+  // 그 자리표시자만 덩그러니 보여주는 대신, 왜 안 보이는지와 어떻게
+  // 풀 수 있는지 명확히 안내합니다. 암호화되지 않은 일반 글에는 전혀
+  // 영향이 없습니다.
+  if (entry.encrypted && !encryptionKey) {
+    return (
+      <>
+        <Modal title="그날을 거닐다" size="xl" tall closeHref="/">
+          {null}
+        </Modal>
+        <NoticeDialog
+          icon={warningSignIcon}
+          message={"암호화된 일기입니다.\n일기 보기 암호를 풀어야 읽을 수 있습니다."}
+          confirmLabel="환경설정으로"
+          onConfirm={() => router.push("/settings")}
+          cancelLabel="닫기"
+          onCancel={() => router.back()}
+          wide
+        />
+      </>
     );
   }
 
