@@ -1,8 +1,8 @@
 import Link from "next/link";
 
-/** 정보 모달 좌측 사이드바. 첫 줄엔 "버전 정보" 라벨(DataSidebar의 "기억의
+/** 정보 모달 좌측 사이드바. 첫 줄엔 "프로그램 정보" 라벨(DataSidebar의 "기억의
  * 조율"과 같은 위치·역할), 둘째 줄엔 "도움말" 페이지로 이동하는 버튼을
- * 둡니다(요구사항). "버전 정보"는 아직 클릭 동작이 없는 순수 라벨이고,
+ * 둡니다(요구사항). "프로그램 정보"는 아직 클릭 동작이 없는 순수 라벨이고,
  * "도움말"만 실제로 이동하는 버튼입니다.
  *
  * DataSidebar와 같은 폭(w-16 → sm:w-28)·여백을 그대로 재사용합니다 — 좁은
@@ -12,7 +12,7 @@ export default function InfoSidebar() {
   return (
     <aside className="my-2 flex w-16 shrink-0 flex-col items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--hover)] p-2 sm:w-28 sm:p-3">
       <span className="block w-full text-center text-xs font-medium break-keep text-[var(--text-sub)] sm:text-sm">
-        버전 정보
+        프로그램 정보
       </span>
       <Link
         href="/info/help"
