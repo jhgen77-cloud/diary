@@ -28,12 +28,20 @@ export default function InfoManager() {
     <div className="flex min-h-0 flex-1 flex-col gap-3">
       <div className="flex min-h-0 flex-1 gap-3 sm:gap-4">
         <InfoSidebar />
-        {/* overflow-x-hidden 명시: overflow-y-auto만 있으면 브라우저가 좌우도
-           auto로 취급해 세로뿐 아니라 옆으로도 스크롤/드래그가 되어버립니다
-           (DataManager/SettingsManager에서 같은 문제를 겪고 고친 것과 동일한
-           원인). */}
-        <div className="scrollbar-hide flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-x-hidden overflow-y-auto">
-          <div className="mt-3 flex shrink-0 items-center gap-6 sm:mt-4 sm:gap-10">
+        {/* overflow-hidden(스크롤 없음): 이 칸의 내용(배너/버전/소개 문구/개발자
+           표기)은 고정 문구라 DataManager/SettingsManager와 달리 세로로 늘어날
+           일이 없어 스크롤이 필요 없습니다. 예전엔 안전장치로 overflow-y-auto를
+           뒀는데, heightVh(86)로 고정된 모달 안에서 내용 높이가 뷰포트 크기에
+           따라 그 몇 px 안팎을 오가며 아주 살짝 스크롤 가능한 상태가 됐다
+           안 됐다 해서, 트랙패드/마우스 휠 입력에 화면(특히 가운데 정렬된
+           소개 문구)이 위아래로 미세하게 흔들려 보이는 문제가 있었습니다
+           (실제로 지적받은 문제). 내용이 원래 한 페이지 안에 들어오도록 짜여
+           있으므로(요구사항) 스크롤 자체를 없애 이 흔들림을 막습니다. */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden">
+          {/* mt-2: InfoSidebar의 자기 테두리 상자 위 여백(my-2, 항상 8px)과 같은
+             값으로 맞춰, 이미지(InfoBanner) 상단이 사이드바 상단 테두리선과
+             같은 높이에서 시작하게 합니다(요구사항). */}
+          <div className="mt-2 flex shrink-0 items-center gap-6 sm:gap-10">
             <InfoBanner />
             <span className="text-6xl font-bold text-[var(--text)] sm:text-8xl">
               기억
