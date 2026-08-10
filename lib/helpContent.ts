@@ -16,10 +16,16 @@ interface HelpLink {
 
 export interface HelpSectionData {
   heading: string;
+  /** 제목 바로 아래, 항목 목록 위에 보여줄 한 줄 소개(선택) — 이 구획이 무엇을
+   * 위한 것인지 짧게 설명할 때 씁니다. */
+  description?: string;
   items: HelpItem[];
   /** 구획 맨 아래에 따로 보여줄 관련 링크(선택) — 예: "※ 데이터 백업 및
    * 복원방법 안내"처럼 더 자세한 내용을 다른 페이지로 안내할 때 씁니다. */
   links?: HelpLink[];
+  /** 항목 목록 맨 아래에 강조해서 보여줄 주의사항(선택) — 예: "※ 주의사항 —
+   * 초기화한 뒤에는 되돌릴 수 없습니다." */
+  note?: string;
 }
 
 export const HELP_SECTIONS: HelpSectionData[] = [

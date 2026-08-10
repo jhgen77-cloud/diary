@@ -16,9 +16,12 @@ export const metadata: Metadata = buildPageMetadata(
 // 백업 및 복원방법 안내"를 통해서만 들어오므로, 기본값(router.back())이
 // 항상 안전하게 도움말 페이지로 돌아갑니다(app/info/help/page.tsx와 같은
 // 이유로 closeHref="push" 방식을 피함).
+//
+// size="xl" tall: HelpContent와 마찬가지로 구획 3개 분량의 안내 내용을
+// 담아야 해서, 기본 크기(sm)로는 좁고 낮습니다.
 export default function BackupGuidePage() {
   return (
-    <Modal title="데이터 백업 및 복원방법 안내">
+    <Modal title="데이터 백업 및 복원방법 안내" size="xl" tall>
       <BackupGuideContent />
     </Modal>
   );

@@ -13,6 +13,11 @@ export default function HelpSection({ section }: HelpSectionProps) {
       <p className="text-sm font-semibold break-keep text-[var(--text)] sm:text-base">
         {section.heading}
       </p>
+      {section.description && (
+        <p className="text-xs break-keep text-[var(--text-sub)] sm:text-sm">
+          {section.description}
+        </p>
+      )}
       <ul className="flex flex-col gap-2.5">
         {section.items.map((item) => (
           <li key={item.title} className="flex flex-col gap-1">
@@ -52,6 +57,13 @@ export default function HelpSection({ section }: HelpSectionProps) {
             </Link>
           ))}
         </div>
+      )}
+      {section.note && (
+        // 초기화처럼 되돌릴 수 없는 동작을 앞두고 강조해서 읽혀야 하는
+        // 주의사항이라, 본문보다 진한 색(text-[var(--text)])을 씁니다.
+        <p className="mt-1 border-t border-[var(--border)] pt-2 text-xs font-medium break-keep text-[var(--text)] sm:text-sm">
+          {section.note}
+        </p>
       )}
     </div>
   );

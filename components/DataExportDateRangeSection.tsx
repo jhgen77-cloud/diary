@@ -15,7 +15,7 @@ interface DataExportDateRangeSectionProps {
   exporting: boolean;
 }
 
-/** '일기 날짜 선택' 박스 — 시작/종료 일자, 전체 글 내보내기, 내보내기 후 삭제 옵션과
+/** '날짜 선택' 박스 — 시작/종료 일자, 전체 글 내보내기, 내보내기 후 삭제 옵션과
  * 내보내기 버튼을 한데 묶습니다. 내보내기 버튼은 별도 열로 분리하지 않고, 삭제 옵션
  * 텍스트와 같은 줄에 두어(justify-between) 그 줄의 우측 가장자리에 맞춥니다. */
 export default function DataExportDateRangeSection({
@@ -33,7 +33,7 @@ export default function DataExportDateRangeSection({
   return (
     <div className="flex flex-col gap-1.5 rounded-2xl border border-[var(--border)] p-2.5">
       <p className="text-xs font-semibold text-[var(--text)] sm:text-sm">
-        일기 날짜 선택
+        날짜 선택
       </p>
 
       <div className="flex flex-wrap items-center gap-3 sm:gap-6">
